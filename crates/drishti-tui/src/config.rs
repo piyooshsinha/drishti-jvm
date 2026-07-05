@@ -8,7 +8,10 @@
 //! 5. DRISHTI_ prefixed environment variables
 //! 6. CLI arguments (override everything)
 
-use figment::{Figment, providers::{Format, Toml, Env, Serialized}};
+use figment::{
+    providers::{Env, Format, Serialized, Toml},
+    Figment,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -21,7 +24,7 @@ pub struct Config {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TargetConfig {
-    pub mode: String,  // "actuator" | "jolokia" | "both"
+    pub mode: String, // "actuator" | "jolokia" | "both"
     pub actuator_url: String,
     pub jolokia_url: String,
     pub gc_log_path: Option<String>,
@@ -109,14 +112,15 @@ impl Default for Config {
 
 impl Config {
     /// Load configuration from all sources.
-    pub fn load() -> Result<Self, figment::Error> {
+    pub fn load() -> Result<Self, Box<figment::Error>> {
         let config: Config = Figment::new()
             .merge(Serialized::defaults(Config::default()))
             .merge(Toml::file("/etc/drishti-jvm/config.toml").nested())
             .merge(Toml::file(dirs_config_path()).nested())
             .merge(Toml::file("drishti-jvm.toml").nested())
             .merge(Env::prefixed("DRISHTI_").split("__"))
-            .extract()?;
+            .extract()
+            .map_err(Box::new)?;
         Ok(config)
     }
 
@@ -127,9 +131,15 @@ impl Config {
         jolokia: Option<&str>,
         gc_log: Option<&str>,
     ) -> Self {
-        if let Some(url) = actuator { self.target.actuator_url = url.to_string(); }
-        if let Some(url) = jolokia { self.target.jolokia_url = url.to_string(); }
-        if let Some(path) = gc_log { self.target.gc_log_path = Some(path.to_string()); }
+        if let Some(url) = actuator {
+            self.target.actuator_url = url.to_string();
+        }
+        if let Some(url) = jolokia {
+            self.target.jolokia_url = url.to_string();
+        }
+        if let Some(path) = gc_log {
+            self.target.gc_log_path = Some(path.to_string());
+        }
         self
     }
 }

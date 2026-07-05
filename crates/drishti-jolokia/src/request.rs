@@ -96,17 +96,41 @@ impl BulkRequestBuilder {
     /// Build the standard drishti bulk request that captures core JVM state.
     pub fn standard() -> Vec<JolokiaRequest> {
         Self::new()
-            .read("java.lang:type=Memory", &["HeapMemoryUsage", "NonHeapMemoryUsage"])
-            .read("java.lang:type=Threading", &["ThreadCount", "DaemonThreadCount", "PeakThreadCount"])
+            .read(
+                "java.lang:type=Memory",
+                &["HeapMemoryUsage", "NonHeapMemoryUsage"],
+            )
+            .read(
+                "java.lang:type=Threading",
+                &["ThreadCount", "DaemonThreadCount", "PeakThreadCount"],
+            )
             .read_all("java.lang:type=GarbageCollector,name=*")
-            .read("java.lang:type=MemoryPool,name=*", &["Usage", "CollectionUsage", "Type"])
-            .read("java.lang:type=OperatingSystem", &[
-                "ProcessCpuLoad", "SystemCpuLoad", "AvailableProcessors",
-                "TotalPhysicalMemorySize", "FreePhysicalMemorySize", "SystemLoadAverage",
-            ])
-            .read("java.lang:type=Runtime", &[
-                "Uptime", "VmName", "VmVendor", "VmVersion", "SpecVersion", "InputArguments",
-            ])
+            .read(
+                "java.lang:type=MemoryPool,name=*",
+                &["Usage", "CollectionUsage", "Type"],
+            )
+            .read(
+                "java.lang:type=OperatingSystem",
+                &[
+                    "ProcessCpuLoad",
+                    "SystemCpuLoad",
+                    "AvailableProcessors",
+                    "TotalPhysicalMemorySize",
+                    "FreePhysicalMemorySize",
+                    "SystemLoadAverage",
+                ],
+            )
+            .read(
+                "java.lang:type=Runtime",
+                &[
+                    "Uptime",
+                    "VmName",
+                    "VmVendor",
+                    "VmVersion",
+                    "SpecVersion",
+                    "InputArguments",
+                ],
+            )
             .read_all("java.lang:type=ClassLoading")
             .exec_no_args("java.lang:type=Threading", "findDeadlockedThreads")
             .build()

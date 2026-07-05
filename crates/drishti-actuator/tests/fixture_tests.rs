@@ -15,7 +15,11 @@ fn parse_prometheus_fixture() {
     let snap = prometheus_to_snapshot(&text);
 
     // Heap
-    assert!(snap.heap.used > 200_000_000, "Heap used should be > 200MB, got {}", snap.heap.used);
+    assert!(
+        snap.heap.used > 200_000_000,
+        "Heap used should be > 200MB, got {}",
+        snap.heap.used
+    );
 
     // CPU
     assert!((snap.cpu.process_cpu - 0.42).abs() < 0.01);
@@ -24,8 +28,22 @@ fn parse_prometheus_fixture() {
     // Threads
     assert_eq!(snap.thread_summary.live, 48);
     assert_eq!(snap.thread_summary.daemon, 32);
-    assert_eq!(*snap.thread_summary.state_counts.get(&ThreadState::Runnable).unwrap_or(&0), 12);
-    assert_eq!(*snap.thread_summary.state_counts.get(&ThreadState::Blocked).unwrap_or(&0), 2);
+    assert_eq!(
+        *snap
+            .thread_summary
+            .state_counts
+            .get(&ThreadState::Runnable)
+            .unwrap_or(&0),
+        12
+    );
+    assert_eq!(
+        *snap
+            .thread_summary
+            .state_counts
+            .get(&ThreadState::Blocked)
+            .unwrap_or(&0),
+        2
+    );
 
     // Memory pools
     assert!(!snap.memory_pools.is_empty(), "Should have memory pools");
@@ -33,10 +51,23 @@ fn parse_prometheus_fixture() {
     assert!(eden.is_some(), "Should have Eden pool");
 
     // HTTP endpoints
-    assert!(!snap.http.endpoints.is_empty(), "Should have HTTP endpoints");
-    assert!(snap.http.total_requests > 7000, "Should have > 7000 requests");
-    assert!(snap.http.total_errors > 0, "Should have some errors from 404s");
-    let owners = snap.http.endpoints.iter().find(|e| e.uri.contains("owners"));
+    assert!(
+        !snap.http.endpoints.is_empty(),
+        "Should have HTTP endpoints"
+    );
+    assert!(
+        snap.http.total_requests > 7000,
+        "Should have > 7000 requests"
+    );
+    assert!(
+        snap.http.total_errors > 0,
+        "Should have some errors from 404s"
+    );
+    let owners = snap
+        .http
+        .endpoints
+        .iter()
+        .find(|e| e.uri.contains("owners"));
     assert!(owners.is_some(), "Should have /owners endpoint");
 
     // HikariCP

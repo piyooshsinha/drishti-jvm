@@ -19,17 +19,17 @@ pub enum ActuatorError {
 }
 
 /// Authentication for Actuator endpoints.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub enum ActuatorAuth {
+    #[default]
     None,
-    Basic { username: String, password: String },
-    Bearer { token: String },
-}
-
-impl Default for ActuatorAuth {
-    fn default() -> Self {
-        Self::None
-    }
+    Basic {
+        username: String,
+        password: String,
+    },
+    Bearer {
+        token: String,
+    },
 }
 
 /// HTTP client for Spring Boot Actuator endpoints.

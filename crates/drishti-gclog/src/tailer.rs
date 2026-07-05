@@ -3,10 +3,10 @@
 //! Uses tokio::fs polling (not inotify) for maximum portability.
 //! Handles log rotation by detecting file truncation/replacement.
 
-use crate::{detect_algorithm, g1, zgc, shenandoah};
+use crate::{detect_algorithm, g1, shenandoah, zgc};
 use drishti_core::model::{GcAlgorithm, GcEvent};
 use std::path::Path;
-use tokio::io::{AsyncBufReadExt, BufReader, AsyncSeekExt};
+use tokio::io::{AsyncBufReadExt, AsyncSeekExt, BufReader};
 use tokio::sync::mpsc;
 use tracing;
 
@@ -81,7 +81,9 @@ pub async fn tail_gc_log(
                 Ok(n) => {
                     pos += n as u64;
                     let trimmed = line.trim();
-                    if trimmed.is_empty() { continue; }
+                    if trimmed.is_empty() {
+                        continue;
+                    }
 
                     // Auto-detect algorithm from first 20 lines
                     if algorithm == GcAlgorithm::Unknown {
@@ -96,7 +98,9 @@ pub async fn tail_gc_log(
                     // Parse event based on detected algorithm
                     let event = match algorithm {
                         GcAlgorithm::G1 => g1::parse_g1_event(trimmed),
-                        GcAlgorithm::Zgc | GcAlgorithm::ZgcGenerational => zgc::parse_zgc_event(trimmed),
+                        GcAlgorithm::Zgc | GcAlgorithm::ZgcGenerational => {
+                            zgc::parse_zgc_event(trimmed)
+                        }
                         GcAlgorithm::Shenandoah => shenandoah::parse_shenandoah_event(trimmed),
                         _ => {
                             // Try all parsers

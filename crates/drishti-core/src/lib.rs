@@ -1,8 +1,8 @@
-pub mod model;
-pub mod timeseries;
 pub mod anomaly;
-pub mod recommend;
 pub mod detectors;
-pub mod rules;
+pub mod model;
 pub mod persistence;
+pub mod recommend;
+pub mod rules;
 pub mod targets;
+pub mod timeseries;

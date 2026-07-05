@@ -81,7 +81,8 @@ mod tests {
 
     #[test]
     fn parse_error_response() {
-        let json = r#"{"status":404,"error":"MBean not found","request":{},"timestamp":1700000000}"#;
+        let json =
+            r#"{"status":404,"error":"MBean not found","request":{},"timestamp":1700000000}"#;
         let resp: JolokiaResponse = serde_json::from_str(json).unwrap();
         assert!(!resp.is_ok());
         assert_eq!(resp.error.as_deref(), Some("MBean not found"));

@@ -21,17 +21,17 @@ pub enum JolokiaError {
 }
 
 /// Authentication configuration for Jolokia.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub enum JolokiaAuth {
+    #[default]
     None,
-    Basic { username: String, password: String },
-    Bearer { token: String },
-}
-
-impl Default for JolokiaAuth {
-    fn default() -> Self {
-        Self::None
-    }
+    Basic {
+        username: String,
+        password: String,
+    },
+    Bearer {
+        token: String,
+    },
 }
 
 /// HTTP client for a single Jolokia agent.

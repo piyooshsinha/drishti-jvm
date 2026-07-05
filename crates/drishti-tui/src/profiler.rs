@@ -11,8 +11,8 @@
 //! Alternative: shell out to `asprof` CLI if available locally and
 //! the target is on the same machine.
 
+use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
-use serde::{Serialize, Deserialize};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -64,9 +64,15 @@ impl ProfileEvent {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProfileStatus {
     Idle,
-    Recording { event: ProfileEvent, elapsed_secs: u64, total_secs: u64 },
+    Recording {
+        event: ProfileEvent,
+        elapsed_secs: u64,
+        total_secs: u64,
+    },
     Processing,
-    Complete { output_path: PathBuf },
+    Complete {
+        output_path: PathBuf,
+    },
     Error(String),
 }
 
@@ -150,10 +156,7 @@ impl ProfileManager {
 
     pub fn build_stop_command(&self) -> String {
         let output_file = self.output_path();
-        format!(
-            "stop,file={}",
-            output_file.display(),
-        )
+        format!("stop,file={}", output_file.display(),)
     }
 
     /// Build the asprof CLI command for local profiling.
@@ -161,9 +164,12 @@ impl ProfileManager {
         let output_file = self.output_path();
         vec![
             "asprof".to_string(),
-            "-d".to_string(), self.config.duration_secs.to_string(),
-            "-e".to_string(), self.config.event.as_str().to_string(),
-            "-f".to_string(), output_file.display().to_string(),
+            "-d".to_string(),
+            self.config.duration_secs.to_string(),
+            "-e".to_string(),
+            self.config.event.as_str().to_string(),
+            "-f".to_string(),
+            output_file.display().to_string(),
             pid.to_string(),
         ]
     }
@@ -263,7 +269,9 @@ impl ProfileManager {
 }
 
 impl Default for ProfileManager {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 /// Generate a simple top-down tree view from collapsed stack data.
@@ -277,11 +285,18 @@ impl Default for ProfileManager {
 ///
 /// Output: a vector of (depth, frame_name, self_samples, total_samples).
 pub fn collapsed_to_tree(collapsed: &str) -> Vec<TreeNode> {
-    let mut root = TreeNode { name: "(all)".to_string(), self_samples: 0, total_samples: 0, children: Vec::new() };
+    let mut root = TreeNode {
+        name: "(all)".to_string(),
+        self_samples: 0,
+        total_samples: 0,
+        children: Vec::new(),
+    };
 
     for line in collapsed.lines() {
         let line = line.trim();
-        if line.is_empty() { continue; }
+        if line.is_empty() {
+            continue;
+        }
 
         let (stack_str, count_str) = match line.rsplit_once(' ') {
             Some((s, c)) => (s, c),
@@ -315,7 +330,9 @@ pub fn collapsed_to_tree(collapsed: &str) -> Vec<TreeNode> {
 
             current = &mut current.children[idx];
             current.total_samples += count;
-            if is_leaf { current.self_samples += count; }
+            if is_leaf {
+                current.self_samples += count;
+            }
         }
     }
 
@@ -326,7 +343,8 @@ pub fn collapsed_to_tree(collapsed: &str) -> Vec<TreeNode> {
 }
 
 fn sort_tree(node: &mut TreeNode) {
-    node.children.sort_by(|a, b| b.total_samples.cmp(&a.total_samples));
+    node.children
+        .sort_by_key(|c| std::cmp::Reverse(c.total_samples));
     for child in &mut node.children {
         sort_tree(child);
     }
@@ -344,8 +362,16 @@ impl TreeNode {
     /// Flatten the tree into indented lines for TUI rendering.
     pub fn flatten(&self, depth: usize, total_root: u64) -> Vec<FlatProfileLine> {
         let mut lines = Vec::new();
-        let pct = if total_root > 0 { self.total_samples as f64 / total_root as f64 * 100.0 } else { 0.0 };
-        let self_pct = if total_root > 0 { self.self_samples as f64 / total_root as f64 * 100.0 } else { 0.0 };
+        let pct = if total_root > 0 {
+            self.total_samples as f64 / total_root as f64 * 100.0
+        } else {
+            0.0
+        };
+        let self_pct = if total_root > 0 {
+            self.self_samples as f64 / total_root as f64 * 100.0
+        } else {
+            0.0
+        };
 
         lines.push(FlatProfileLine {
             depth,

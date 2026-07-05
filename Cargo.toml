@@ -70,3 +70,10 @@ drishti-core = { path = "crates/drishti-core" }
 drishti-jolokia = { path = "crates/drishti-jolokia" }
 drishti-actuator = { path = "crates/drishti-actuator" }
 drishti-gclog = { path = "crates/drishti-gclog" }
+
+# ── Release profile: small, fast, stripped binary ──────────
+[profile.release]
+lto = true
+codegen-units = 1
+strip = "symbols"
+panic = "abort"

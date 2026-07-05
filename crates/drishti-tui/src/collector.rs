@@ -1,20 +1,20 @@
 //! Data collector — manages shared state and async polling tasks.
 
 use arc_swap::ArcSwap;
-use drishti_actuator::ActuatorClient;
 use drishti_actuator::client::ActuatorAuth;
 use drishti_actuator::converter::prometheus_to_snapshot;
 use drishti_actuator::logfile::spawn_remote_log_tailer;
 use drishti_actuator::threads::parse_thread_dump;
-use drishti_jolokia::JolokiaClient;
+use drishti_actuator::ActuatorClient;
+use drishti_core::model::{DerivedMetrics, GcAlgorithm, GcEvent, JvmSnapshot};
 use drishti_jolokia::client::JolokiaAuth;
 use drishti_jolokia::converter::bulk_to_snapshot;
 use drishti_jolokia::request::BulkRequestBuilder;
-use drishti_core::model::{JvmSnapshot, GcAlgorithm, DerivedMetrics, GcEvent};
+use drishti_jolokia::JolokiaClient;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::sync::{watch, mpsc};
+use tokio::sync::{mpsc, watch};
 use tokio_util::sync::CancellationToken;
 
 pub struct AppState {
@@ -37,14 +37,20 @@ impl AppState {
             history: Arc::new(std::sync::Mutex::new(Vec::with_capacity(1000))),
             derived: Arc::new(ArcSwap::from_pointee(DerivedMetrics::default())),
             gc_events: Arc::new(std::sync::Mutex::new(Vec::with_capacity(500))),
-            watch_rx, readonly, watch_tx,
+            watch_rx,
+            readonly,
+            watch_tx,
             tick: std::sync::atomic::AtomicU64::new(0),
             prev_snapshot: Arc::new(std::sync::Mutex::new(None)),
         }
     }
 
-    pub fn current(&self) -> Arc<JvmSnapshot> { self.snapshot.load_full() }
-    pub fn current_derived(&self) -> Arc<DerivedMetrics> { self.derived.load_full() }
+    pub fn current(&self) -> Arc<JvmSnapshot> {
+        self.snapshot.load_full()
+    }
+    pub fn current_derived(&self) -> Arc<DerivedMetrics> {
+        self.derived.load_full()
+    }
 
     pub fn update_snapshot(&self, snap: JvmSnapshot) {
         if let Ok(mut prev) = self.prev_snapshot.lock() {
@@ -56,7 +62,9 @@ impl AppState {
         if let Ok(mut hist) = self.history.lock() {
             hist.push(snap.clone());
             let excess = hist.len().saturating_sub(500);
-            if excess > 0 { hist.drain(..excess); }
+            if excess > 0 {
+                hist.drain(..excess);
+            }
         }
         self.snapshot.store(Arc::new(snap));
         let t = self.tick.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -67,7 +75,9 @@ impl AppState {
         if let Ok(mut events) = self.gc_events.lock() {
             events.push(event);
             let excess = events.len().saturating_sub(500);
-            if excess > 0 { events.drain(..excess); }
+            if excess > 0 {
+                events.drain(..excess);
+            }
         }
     }
 
@@ -81,7 +91,11 @@ impl AppState {
 }
 
 fn compute_derived(old: &JvmSnapshot, new: &JvmSnapshot) -> DerivedMetrics {
-    let dt_ms = new.timestamp.signed_duration_since(old.timestamp).num_milliseconds().max(1) as f64;
+    let dt_ms = new
+        .timestamp
+        .signed_duration_since(old.timestamp)
+        .num_milliseconds()
+        .max(1) as f64;
     let dt_secs = dt_ms / 1000.0;
 
     let old_gc_ms: i64 = old.gc_collectors.iter().map(|c| c.collection_time_ms).sum();
@@ -91,17 +105,33 @@ fn compute_derived(old: &JvmSnapshot, new: &JvmSnapshot) -> DerivedMetrics {
     DerivedMetrics {
         allocation_rate_bytes_per_sec: if dt_secs > 0.0 {
             (new.heap.used - old.heap.used).max(0) as f64 / dt_secs
-        } else { 0.0 },
+        } else {
+            0.0
+        },
         promotion_rate_bytes_per_sec: 0.0,
-        gc_throughput: if dt_ms > 0.0 { 1.0 - (gc_delta_ms / dt_ms) } else { 1.0 },
-        gc_overhead: if dt_ms > 0.0 { gc_delta_ms / dt_ms } else { 0.0 },
+        gc_throughput: if dt_ms > 0.0 {
+            1.0 - (gc_delta_ms / dt_ms)
+        } else {
+            1.0
+        },
+        gc_overhead: if dt_ms > 0.0 {
+            gc_delta_ms / dt_ms
+        } else {
+            0.0
+        },
         http_requests_per_sec: if dt_secs > 0.0 {
             (new.http.total_requests - old.http.total_requests).max(0) as f64 / dt_secs
-        } else { 0.0 },
+        } else {
+            0.0
+        },
         http_error_rate: {
             let req_delta = (new.http.total_requests - old.http.total_requests).max(0) as f64;
             let err_delta = (new.http.total_errors - old.http.total_errors).max(0) as f64;
-            if req_delta > 0.0 { err_delta / req_delta } else { 0.0 }
+            if req_delta > 0.0 {
+                err_delta / req_delta
+            } else {
+                0.0
+            }
         },
     }
 }
@@ -114,13 +144,27 @@ pub struct CollectorChannels {
     pub mbeans_rx: mpsc::Receiver<Vec<String>>,
 }
 
+/// Everything the collector tasks need: targets + polling intervals.
+pub struct CollectorConfig {
+    pub actuator_url: Option<String>,
+    pub jolokia_url: Option<String>,
+    pub gc_log_path: Option<String>,
+    pub metrics_interval: Duration,
+    pub thread_dump_interval: Duration,
+}
+
 pub fn spawn_collectors(
     state: Arc<AppState>,
-    actuator_url: Option<String>,
-    jolokia_url: Option<String>,
-    gc_log_path: Option<String>,
+    cfg: CollectorConfig,
     cancel: CancellationToken,
 ) -> CollectorChannels {
+    let CollectorConfig {
+        actuator_url,
+        jolokia_url,
+        gc_log_path,
+        metrics_interval,
+        thread_dump_interval,
+    } = cfg;
     let (log_tx, log_rx) = mpsc::channel::<String>(500);
     let (mbeans_tx, mbeans_rx) = mpsc::channel::<Vec<String>>(1);
 
@@ -130,7 +174,7 @@ pub fn spawn_collectors(
         let cancel = cancel.clone();
         tokio::spawn(async move {
             let client = ActuatorClient::new(&url, ActuatorAuth::None, Duration::from_secs(10));
-            let mut interval = tokio::time::interval(Duration::from_secs(2));
+            let mut interval = tokio::time::interval(metrics_interval);
             loop {
                 tokio::select! {
                     _ = cancel.cancelled() => break,
@@ -150,7 +194,8 @@ pub fn spawn_collectors(
         let cancel = cancel.clone();
         tokio::spawn(async move {
             let client = JolokiaClient::new(&url, JolokiaAuth::None, Duration::from_secs(10));
-            let mut interval = tokio::time::interval(Duration::from_secs(3));
+            // Offset from the actuator scrape so the two sources interleave
+            let mut interval = tokio::time::interval(metrics_interval + Duration::from_secs(1));
             loop {
                 tokio::select! {
                     _ = cancel.cancelled() => break,
@@ -171,7 +216,7 @@ pub fn spawn_collectors(
         let cancel = cancel.clone();
         tokio::spawn(async move {
             let client = ActuatorClient::new(&url, ActuatorAuth::None, Duration::from_secs(15));
-            let mut interval = tokio::time::interval(Duration::from_secs(10));
+            let mut interval = tokio::time::interval(thread_dump_interval);
             loop {
                 tokio::select! {
                     _ = cancel.cancelled() => break,
@@ -226,7 +271,12 @@ pub fn spawn_collectors(
         tokio::spawn(async move {
             let (chunk_tx, mut chunk_rx) = mpsc::channel(100);
             let tc = cancel.clone();
-            tokio::spawn(spawn_remote_log_tailer(url, ActuatorAuth::None, chunk_tx, tc));
+            tokio::spawn(spawn_remote_log_tailer(
+                url,
+                ActuatorAuth::None,
+                chunk_tx,
+                tc,
+            ));
             loop {
                 tokio::select! {
                     _ = cancel.cancelled() => break,
@@ -273,9 +323,11 @@ pub fn spawn_collectors(
     CollectorChannels { log_rx, mbeans_rx }
 }
 
-fn merge_snapshots(actuator: &JvmSnapshot, jolokia: &JvmSnapshot) -> JvmSnapshot {
+pub fn merge_snapshots(actuator: &JvmSnapshot, jolokia: &JvmSnapshot) -> JvmSnapshot {
     let mut m = actuator.clone();
-    if !jolokia.deadlocks.is_empty() { m.deadlocks = jolokia.deadlocks.clone(); }
+    if !jolokia.deadlocks.is_empty() {
+        m.deadlocks = jolokia.deadlocks.clone();
+    }
     if !jolokia.jvm_info.vm_name.is_empty() {
         m.jvm_info.vm_name = jolokia.jvm_info.vm_name.clone();
         m.jvm_info.vm_vendor = jolokia.jvm_info.vm_vendor.clone();
@@ -285,7 +337,9 @@ fn merge_snapshots(actuator: &JvmSnapshot, jolokia: &JvmSnapshot) -> JvmSnapshot
         m.jvm_info.max_heap_bytes = jolokia.jvm_info.max_heap_bytes;
         m.jvm_info.initial_heap_bytes = jolokia.jvm_info.initial_heap_bytes;
     }
-    if jolokia.jvm_info.uptime_ms > 0 { m.jvm_info.uptime_ms = jolokia.jvm_info.uptime_ms; }
+    if jolokia.jvm_info.uptime_ms > 0 {
+        m.jvm_info.uptime_ms = jolokia.jvm_info.uptime_ms;
+    }
     if jolokia.jvm_info.gc_algorithm != GcAlgorithm::Unknown {
         m.jvm_info.gc_algorithm = jolokia.jvm_info.gc_algorithm.clone();
     }

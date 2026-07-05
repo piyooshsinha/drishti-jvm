@@ -20,7 +20,7 @@ pub enum CanonicalMetric {
     HeapCommitted,
     NonHeapUsed,
     NonHeapCommitted,
-    MemoryPoolUsed,    // needs {area, id} labels
+    MemoryPoolUsed, // needs {area, id} labels
     MemoryPoolMax,
     MemoryPoolCommitted,
 
@@ -34,10 +34,10 @@ pub enum CanonicalMetric {
     ThreadsLive,
     ThreadsDaemon,
     ThreadsPeak,
-    ThreadStates,      // needs {state} label
+    ThreadStates, // needs {state} label
 
     // GC
-    GcPauseCount,      // needs {action, cause} labels
+    GcPauseCount, // needs {action, cause} labels
     GcPauseSum,
     GcPauseMax,
     GcMemoryAllocated,
@@ -96,66 +96,58 @@ impl MetricRegistry {
             MetricMapping {
                 canonical: CanonicalMetric::ThreadsLive,
                 prometheus_names: vec![
-                    "jvm_threads_live_threads",        // Boot 3.x / Micrometer 1.11+
-                    "jvm_threads_live",                // Boot 2.x / Micrometer 1.0-1.10
+                    "jvm_threads_live_threads", // Boot 3.x / Micrometer 1.11+
+                    "jvm_threads_live",         // Boot 2.x / Micrometer 1.0-1.10
                 ],
                 jolokia_path: Some("java.lang:type=Threading:ThreadCount"),
             },
             MetricMapping {
                 canonical: CanonicalMetric::ThreadsDaemon,
                 prometheus_names: vec![
-                    "jvm_threads_daemon_threads",      // Boot 3.x
-                    "jvm_threads_daemon",              // Boot 2.x
+                    "jvm_threads_daemon_threads", // Boot 3.x
+                    "jvm_threads_daemon",         // Boot 2.x
                 ],
                 jolokia_path: Some("java.lang:type=Threading:DaemonThreadCount"),
             },
             MetricMapping {
                 canonical: CanonicalMetric::ThreadsPeak,
                 prometheus_names: vec![
-                    "jvm_threads_peak_threads",        // Boot 3.x
-                    "jvm_threads_peak",                // Boot 2.x
+                    "jvm_threads_peak_threads", // Boot 3.x
+                    "jvm_threads_peak",         // Boot 2.x
                 ],
                 jolokia_path: Some("java.lang:type=Threading:PeakThreadCount"),
             },
             MetricMapping {
                 canonical: CanonicalMetric::ThreadStates,
                 prometheus_names: vec![
-                    "jvm_threads_states_threads",      // Both Boot 2.x and 3.x
+                    "jvm_threads_states_threads", // Both Boot 2.x and 3.x
                 ],
                 jolokia_path: None,
             },
-
             // ── CPU ──────────────────────────────────────────
             MetricMapping {
                 canonical: CanonicalMetric::ProcessCpu,
                 prometheus_names: vec![
-                    "process_cpu_usage",               // Both Boot 2.x and 3.x
-                    "process_cpu_time_ns_total",       // Rare variant
+                    "process_cpu_usage",         // Both Boot 2.x and 3.x
+                    "process_cpu_time_ns_total", // Rare variant
                 ],
                 jolokia_path: Some("java.lang:type=OperatingSystem:ProcessCpuLoad"),
             },
             MetricMapping {
                 canonical: CanonicalMetric::SystemCpu,
-                prometheus_names: vec![
-                    "system_cpu_usage",
-                ],
+                prometheus_names: vec!["system_cpu_usage"],
                 jolokia_path: Some("java.lang:type=OperatingSystem:SystemCpuLoad"),
             },
             MetricMapping {
                 canonical: CanonicalMetric::SystemCpuCount,
-                prometheus_names: vec![
-                    "system_cpu_count",
-                ],
+                prometheus_names: vec!["system_cpu_count"],
                 jolokia_path: Some("java.lang:type=OperatingSystem:AvailableProcessors"),
             },
             MetricMapping {
                 canonical: CanonicalMetric::LoadAverage1m,
-                prometheus_names: vec![
-                    "system_load_average_1m",
-                ],
+                prometheus_names: vec!["system_load_average_1m"],
                 jolokia_path: Some("java.lang:type=OperatingSystem:SystemLoadAverage"),
             },
-
             // ── Memory ──────────────────────────────────────
             MetricMapping {
                 canonical: CanonicalMetric::MemoryPoolUsed,
@@ -172,45 +164,41 @@ impl MetricRegistry {
                 prometheus_names: vec!["jvm_memory_committed_bytes"],
                 jolokia_path: None,
             },
-
             // ── GC ──────────────────────────────────────────
             MetricMapping {
                 canonical: CanonicalMetric::GcPauseCount,
                 prometheus_names: vec![
-                    "jvm_gc_pause_seconds_count",      // Boot 2.x + 3.x
+                    "jvm_gc_pause_seconds_count", // Boot 2.x + 3.x
                 ],
                 jolokia_path: None,
             },
             MetricMapping {
                 canonical: CanonicalMetric::GcPauseSum,
-                prometheus_names: vec![
-                    "jvm_gc_pause_seconds_sum",
-                ],
+                prometheus_names: vec!["jvm_gc_pause_seconds_sum"],
                 jolokia_path: None,
             },
             MetricMapping {
                 canonical: CanonicalMetric::GcMemoryAllocated,
                 prometheus_names: vec![
-                    "jvm_gc_memory_allocated_bytes_total",  // Boot 3.x
-                    "jvm_gc_memory_allocated_bytes",        // Boot 2.x (gauge)
+                    "jvm_gc_memory_allocated_bytes_total", // Boot 3.x
+                    "jvm_gc_memory_allocated_bytes",       // Boot 2.x (gauge)
                 ],
                 jolokia_path: None,
             },
             MetricMapping {
                 canonical: CanonicalMetric::GcMemoryPromoted,
                 prometheus_names: vec![
-                    "jvm_gc_memory_promoted_bytes_total",   // Boot 3.x
-                    "jvm_gc_memory_promoted_bytes",         // Boot 2.x
+                    "jvm_gc_memory_promoted_bytes_total", // Boot 3.x
+                    "jvm_gc_memory_promoted_bytes",       // Boot 2.x
                 ],
                 jolokia_path: None,
             },
-
             // ── Classes ─────────────────────────────────────
             MetricMapping {
                 canonical: CanonicalMetric::ClassesLoaded,
                 prometheus_names: vec![
-                    "jvm_classes_loaded_classes",       // Both
-                    "jvm_classes_loaded",               // Rare
+                    "jvm_classes_loaded_classes", // Both
+                    "jvm_classes_loaded",         // Rare
                 ],
                 jolokia_path: Some("java.lang:type=ClassLoading:LoadedClassCount"),
             },
@@ -223,13 +211,12 @@ impl MetricRegistry {
                 ],
                 jolokia_path: Some("java.lang:type=ClassLoading:UnloadedClassCount"),
             },
-
             // ── HTTP ────────────────────────────────────────
             MetricMapping {
                 canonical: CanonicalMetric::HttpRequestsCount,
                 prometheus_names: vec![
-                    "http_server_requests_seconds_count",            // Boot 2.x + 3.x
-                    "http_server_requests_active_seconds_count",     // Boot 3.2+ observation API
+                    "http_server_requests_seconds_count",        // Boot 2.x + 3.x
+                    "http_server_requests_active_seconds_count", // Boot 3.2+ observation API
                 ],
                 jolokia_path: None,
             },
@@ -243,12 +230,9 @@ impl MetricRegistry {
             },
             MetricMapping {
                 canonical: CanonicalMetric::HttpRequestsMax,
-                prometheus_names: vec![
-                    "http_server_requests_seconds_max",
-                ],
+                prometheus_names: vec!["http_server_requests_seconds_max"],
                 jolokia_path: None,
             },
-
             // ── HikariCP ────────────────────────────────────
             MetricMapping {
                 canonical: CanonicalMetric::HikariActive,
@@ -280,22 +264,18 @@ impl MetricRegistry {
                 prometheus_names: vec!["hikaricp_connections_timeout_total"],
                 jolokia_path: None,
             },
-
             // ── Tomcat ──────────────────────────────────────
             MetricMapping {
                 canonical: CanonicalMetric::TomcatThreadsBusy,
                 prometheus_names: vec![
-                    "tomcat_threads_busy_threads",     // Boot 3.x
-                    "tomcat_threads_busy",             // Boot 2.x
+                    "tomcat_threads_busy_threads", // Boot 3.x
+                    "tomcat_threads_busy",         // Boot 2.x
                 ],
                 jolokia_path: None,
             },
             MetricMapping {
                 canonical: CanonicalMetric::TomcatThreadsCurrent,
-                prometheus_names: vec![
-                    "tomcat_threads_current_threads",
-                    "tomcat_threads_current",
-                ],
+                prometheus_names: vec!["tomcat_threads_current_threads", "tomcat_threads_current"],
                 jolokia_path: None,
             },
             MetricMapping {
@@ -315,7 +295,10 @@ impl MetricRegistry {
             }
         }
 
-        Self { prom_index, mappings }
+        Self {
+            prom_index,
+            mappings,
+        }
     }
 
     /// Look up a Prometheus metric name → canonical metric.
@@ -326,7 +309,8 @@ impl MetricRegistry {
 
     /// Get all Prometheus name variants for a canonical metric.
     pub fn prometheus_names_for(&self, canonical: CanonicalMetric) -> Vec<&str> {
-        self.mappings.iter()
+        self.mappings
+            .iter()
             .filter(|m| m.canonical == canonical)
             .flat_map(|m| m.prometheus_names.iter().copied())
             .collect()
@@ -355,15 +339,27 @@ mod tests {
     #[test]
     fn resolve_boot3_thread_names() {
         let reg = MetricRegistry::default_registry();
-        assert_eq!(reg.resolve_prometheus("jvm_threads_live_threads"), Some(CanonicalMetric::ThreadsLive));
-        assert_eq!(reg.resolve_prometheus("jvm_threads_daemon_threads"), Some(CanonicalMetric::ThreadsDaemon));
+        assert_eq!(
+            reg.resolve_prometheus("jvm_threads_live_threads"),
+            Some(CanonicalMetric::ThreadsLive)
+        );
+        assert_eq!(
+            reg.resolve_prometheus("jvm_threads_daemon_threads"),
+            Some(CanonicalMetric::ThreadsDaemon)
+        );
     }
 
     #[test]
     fn resolve_boot2_thread_names() {
         let reg = MetricRegistry::default_registry();
-        assert_eq!(reg.resolve_prometheus("jvm_threads_live"), Some(CanonicalMetric::ThreadsLive));
-        assert_eq!(reg.resolve_prometheus("jvm_threads_daemon"), Some(CanonicalMetric::ThreadsDaemon));
+        assert_eq!(
+            reg.resolve_prometheus("jvm_threads_live"),
+            Some(CanonicalMetric::ThreadsLive)
+        );
+        assert_eq!(
+            reg.resolve_prometheus("jvm_threads_daemon"),
+            Some(CanonicalMetric::ThreadsDaemon)
+        );
     }
 
     #[test]
@@ -385,17 +381,29 @@ mod tests {
     fn tomcat_naming_across_versions() {
         let reg = MetricRegistry::default_registry();
         // Boot 3.x name
-        assert_eq!(reg.resolve_prometheus("tomcat_threads_busy_threads"), Some(CanonicalMetric::TomcatThreadsBusy));
+        assert_eq!(
+            reg.resolve_prometheus("tomcat_threads_busy_threads"),
+            Some(CanonicalMetric::TomcatThreadsBusy)
+        );
         // Boot 2.x name
-        assert_eq!(reg.resolve_prometheus("tomcat_threads_busy"), Some(CanonicalMetric::TomcatThreadsBusy));
+        assert_eq!(
+            reg.resolve_prometheus("tomcat_threads_busy"),
+            Some(CanonicalMetric::TomcatThreadsBusy)
+        );
     }
 
     #[test]
     fn http_observation_api_variant() {
         let reg = MetricRegistry::default_registry();
         // Classic
-        assert_eq!(reg.resolve_prometheus("http_server_requests_seconds_count"), Some(CanonicalMetric::HttpRequestsCount));
+        assert_eq!(
+            reg.resolve_prometheus("http_server_requests_seconds_count"),
+            Some(CanonicalMetric::HttpRequestsCount)
+        );
         // Boot 3.2+ observation API
-        assert_eq!(reg.resolve_prometheus("http_server_requests_active_seconds_count"), Some(CanonicalMetric::HttpRequestsCount));
+        assert_eq!(
+            reg.resolve_prometheus("http_server_requests_active_seconds_count"),
+            Some(CanonicalMetric::HttpRequestsCount)
+        );
     }
 }

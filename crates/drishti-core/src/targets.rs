@@ -5,9 +5,9 @@
 //! in the TUI and comparing metrics across instances.
 
 use crate::model::JvmSnapshot;
-use std::collections::HashMap;
 use chrono::{DateTime, Utc};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// Unique identifier for a target JVM.
 pub type TargetId = String;
@@ -20,7 +20,7 @@ pub struct TargetConfig {
     pub actuator_url: Option<String>,
     pub jolokia_url: Option<String>,
     pub gc_log_path: Option<String>,
-    pub tags: Vec<String>,  // e.g., ["production", "api-server", "region-us-east"]
+    pub tags: Vec<String>, // e.g., ["production", "api-server", "region-us-east"]
 }
 
 /// Connection status for a target.
@@ -116,7 +116,9 @@ impl TargetManager {
 
     /// Cycle to the next target.
     pub fn next_target(&mut self) {
-        if self.target_order.len() <= 1 { return; }
+        if self.target_order.len() <= 1 {
+            return;
+        }
         if let Some(ref current) = self.active_id {
             if let Some(pos) = self.target_order.iter().position(|t| t == current) {
                 let next = (pos + 1) % self.target_order.len();
@@ -162,7 +164,8 @@ impl TargetManager {
 
     /// Get all targets in display order.
     pub fn all_targets(&self) -> Vec<&ManagedTarget> {
-        self.target_order.iter()
+        self.target_order
+            .iter()
             .filter_map(|id| self.targets.get(id))
             .collect()
     }
@@ -174,7 +177,8 @@ impl TargetManager {
 
     /// Compare a metric across all connected targets.
     pub fn compare_heap_usage(&self) -> Vec<(&str, f64)> {
-        self.all_targets().iter()
+        self.all_targets()
+            .iter()
             .filter_map(|t| {
                 let snap = t.last_snapshot.as_ref()?;
                 let pct = snap.heap.usage_pct()?;
@@ -184,7 +188,8 @@ impl TargetManager {
     }
 
     pub fn compare_cpu_usage(&self) -> Vec<(&str, f64)> {
-        self.all_targets().iter()
+        self.all_targets()
+            .iter()
             .filter_map(|t| {
                 let snap = t.last_snapshot.as_ref()?;
                 Some((t.config.name.as_str(), snap.cpu.process_cpu_pct()))

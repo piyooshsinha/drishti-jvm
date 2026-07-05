@@ -80,8 +80,10 @@ fn parse_thread_state(s: &str) -> ThreadState {
 pub fn parse_thread_dump(json: &str) -> Result<Vec<ThreadInfo>, serde_json::Error> {
     let response: ThreadDumpResponse = serde_json::from_str(json)?;
 
-    Ok(response.threads.into_iter().map(|t| {
-        ThreadInfo {
+    Ok(response
+        .threads
+        .into_iter()
+        .map(|t| ThreadInfo {
             id: t.thread_id,
             name: t.thread_name,
             state: parse_thread_state(&t.thread_state),
@@ -94,9 +96,14 @@ pub fn parse_thread_dump(json: &str) -> Result<Vec<ThreadInfo>, serde_json::Erro
             lock_owner_id: t.lock_owner_id,
             in_native: t.in_native,
             suspended: t.suspended,
-            stack_frames: t.stack_trace.iter().take(20).map(|f| f.to_string_frame()).collect(),
-        }
-    }).collect())
+            stack_frames: t
+                .stack_trace
+                .iter()
+                .take(20)
+                .map(|f| f.to_string_frame())
+                .collect(),
+        })
+        .collect())
 }
 
 #[cfg(test)]

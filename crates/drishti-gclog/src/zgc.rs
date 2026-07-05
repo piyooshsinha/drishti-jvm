@@ -24,9 +24,7 @@ static ZGC_COLLECTION_RE: LazyLock<Regex> = LazyLock::new(|| {
 
 // ZGC pause: GC(N) Pause (Mark Start|Mark End|Relocate Start) N.NNNms
 static ZGC_PAUSE_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(
-        r"GC\((\d+)\)\s+Pause\s+(Mark Start|Mark End|Relocate Start)\s+([0-9.]+)ms"
-    ).unwrap()
+    Regex::new(r"GC\((\d+)\)\s+Pause\s+(Mark Start|Mark End|Relocate Start)\s+([0-9.]+)ms").unwrap()
 });
 
 /// Parse a ZGC collection summary line.
@@ -49,13 +47,20 @@ pub fn parse_zgc_event(line: &str) -> Option<GcEvent> {
 
         return Some(GcEvent {
             id,
-            collector: format!("ZGC{}", if !generation.is_empty() { format!(" {}", generation) } else { String::new() }),
+            collector: format!(
+                "ZGC{}",
+                if !generation.is_empty() {
+                    format!(" {}", generation)
+                } else {
+                    String::new()
+                }
+            ),
             cause,
             phase,
             heap_before_bytes: heap_before,
             heap_after_bytes: heap_after,
             heap_capacity_bytes: 0, // ZGC summary doesn't always show capacity
-            pause_ms: 0.0, // Pause times come from separate lines
+            pause_ms: 0.0,          // Pause times come from separate lines
             timestamp: log_line.timestamp.unwrap_or_else(Utc::now),
         });
     }

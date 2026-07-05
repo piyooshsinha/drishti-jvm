@@ -49,17 +49,13 @@ impl MemoryUsage {
 /// JVM memory pool type — heap or non-heap.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+#[derive(Default)]
 pub enum PoolType {
     Heap,
     NonHeap,
     #[serde(other)]
+    #[default]
     Unknown,
-}
-
-impl Default for PoolType {
-    fn default() -> Self {
-        Self::Unknown
-    }
 }
 
 /// A single JVM memory pool (e.g., "G1 Eden Space", "Metaspace", "CodeCache").
@@ -123,7 +119,7 @@ impl Default for GcPhase {
 }
 
 /// Detected GC algorithm family.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum GcAlgorithm {
     Serial,
     Parallel,
@@ -131,13 +127,8 @@ pub enum GcAlgorithm {
     Zgc,
     ZgcGenerational,
     Shenandoah,
+    #[default]
     Unknown,
-}
-
-impl Default for GcAlgorithm {
-    fn default() -> Self {
-        Self::Unknown
-    }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -147,6 +138,7 @@ impl Default for GcAlgorithm {
 /// JVM thread state — matches java.lang.Thread.State.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+#[derive(Default)]
 pub enum ThreadState {
     New,
     Runnable,
@@ -155,13 +147,8 @@ pub enum ThreadState {
     TimedWaiting,
     Terminated,
     #[serde(other)]
+    #[default]
     Unknown,
-}
-
-impl Default for ThreadState {
-    fn default() -> Self {
-        Self::Unknown
-    }
 }
 
 /// Information about a single JVM thread.
@@ -366,17 +353,13 @@ impl JvmInfo {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+#[derive(Default)]
 pub enum HealthStatus {
     Up,
     Down,
     OutOfService,
+    #[default]
     Unknown,
-}
-
-impl Default for HealthStatus {
-    fn default() -> Self {
-        Self::Unknown
-    }
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -533,9 +516,10 @@ mod tests {
 
     #[test]
     fn jvm_info_java_version() {
-        let mut info = JvmInfo::default();
-
-        info.spec_version = "21".to_string();
+        let mut info = JvmInfo {
+            spec_version: "21".to_string(),
+            ..Default::default()
+        };
         assert_eq!(info.java_major_version(), Some(21));
 
         info.spec_version = "1.8".to_string();

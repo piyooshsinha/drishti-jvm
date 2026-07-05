@@ -11,7 +11,7 @@
 #[cfg(feature = "persistence")]
 pub mod db {
     use crate::model::JvmSnapshot;
-    use rusqlite::{Connection, params};
+    use rusqlite::{params, Connection};
     use std::path::Path;
     use tracing;
 
@@ -37,7 +37,8 @@ pub mod db {
         }
 
         fn create_tables(&self) -> Result<(), rusqlite::Error> {
-            self.conn.execute_batch("
+            self.conn.execute_batch(
+                "
                 CREATE TABLE IF NOT EXISTS snapshots (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     timestamp TEXT NOT NULL,
@@ -83,14 +84,19 @@ pub mod db {
                     detail TEXT NOT NULL,
                     confidence REAL NOT NULL
                 );
-            ")?;
+            ",
+            )?;
             Ok(())
         }
 
         /// Store a snapshot as a compact row.
         pub fn insert_snapshot(&self, snap: &JvmSnapshot) -> Result<(), rusqlite::Error> {
             let gc_count: i64 = snap.gc_collectors.iter().map(|c| c.collection_count).sum();
-            let gc_time: i64 = snap.gc_collectors.iter().map(|c| c.collection_time_ms).sum();
+            let gc_time: i64 = snap
+                .gc_collectors
+                .iter()
+                .map(|c| c.collection_time_ms)
+                .sum();
 
             self.conn.execute(
                 "INSERT INTO snapshots (timestamp, heap_used, heap_max, non_heap_used,
@@ -100,11 +106,17 @@ pub mod db {
                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
                 params![
                     snap.timestamp.to_rfc3339(),
-                    snap.heap.used, snap.heap.max, snap.non_heap.used,
-                    snap.cpu.process_cpu, snap.cpu.system_cpu,
-                    snap.thread_summary.live, snap.thread_summary.daemon,
-                    gc_count, gc_time,
-                    snap.http.total_requests, snap.http.total_errors,
+                    snap.heap.used,
+                    snap.heap.max,
+                    snap.non_heap.used,
+                    snap.cpu.process_cpu,
+                    snap.cpu.system_cpu,
+                    snap.thread_summary.live,
+                    snap.thread_summary.daemon,
+                    gc_count,
+                    gc_time,
+                    snap.http.total_requests,
+                    snap.http.total_errors,
                     snap.http.avg_latency_ms,
                     snap.hikari.as_ref().map(|h| h.active as i64),
                     snap.hikari.as_ref().map(|h| h.max as i64),
@@ -128,11 +140,14 @@ pub mod db {
         }
 
         /// Query historical heap usage for charting.
-        pub fn query_heap_history(&self, hours: u32) -> Result<Vec<(String, i64, i64)>, rusqlite::Error> {
+        pub fn query_heap_history(
+            &self,
+            hours: u32,
+        ) -> Result<Vec<(String, i64, i64)>, rusqlite::Error> {
             let cutoff = chrono::Utc::now() - chrono::Duration::hours(hours as i64);
             let mut stmt = self.conn.prepare(
                 "SELECT timestamp, heap_used, heap_max FROM snapshots
-                 WHERE timestamp > ?1 ORDER BY timestamp"
+                 WHERE timestamp > ?1 ORDER BY timestamp",
             )?;
             let rows = stmt.query_map(params![cutoff.to_rfc3339()], |row| {
                 Ok((row.get(0)?, row.get(1)?, row.get(2)?))
@@ -141,11 +156,14 @@ pub mod db {
         }
 
         /// Query historical CPU usage for charting.
-        pub fn query_cpu_history(&self, hours: u32) -> Result<Vec<(String, f64, f64)>, rusqlite::Error> {
+        pub fn query_cpu_history(
+            &self,
+            hours: u32,
+        ) -> Result<Vec<(String, f64, f64)>, rusqlite::Error> {
             let cutoff = chrono::Utc::now() - chrono::Duration::hours(hours as i64);
             let mut stmt = self.conn.prepare(
                 "SELECT timestamp, process_cpu, system_cpu FROM snapshots
-                 WHERE timestamp > ?1 ORDER BY timestamp"
+                 WHERE timestamp > ?1 ORDER BY timestamp",
             )?;
             let rows = stmt.query_map(params![cutoff.to_rfc3339()], |row| {
                 Ok((row.get(0)?, row.get(1)?, row.get(2)?))
@@ -158,15 +176,22 @@ pub mod db {
             let cutoff = chrono::Utc::now() - chrono::Duration::hours(retain_hours as i64);
             let ts = cutoff.to_rfc3339();
             let mut total = 0;
-            total += self.conn.execute("DELETE FROM snapshots WHERE timestamp < ?1", params![ts])?;
-            total += self.conn.execute("DELETE FROM gc_events WHERE timestamp < ?1", params![ts])?;
-            total += self.conn.execute("DELETE FROM alerts WHERE timestamp < ?1", params![ts])?;
+            total += self
+                .conn
+                .execute("DELETE FROM snapshots WHERE timestamp < ?1", params![ts])?;
+            total += self
+                .conn
+                .execute("DELETE FROM gc_events WHERE timestamp < ?1", params![ts])?;
+            total += self
+                .conn
+                .execute("DELETE FROM alerts WHERE timestamp < ?1", params![ts])?;
             Ok(total)
         }
 
         /// Get total snapshot count.
         pub fn snapshot_count(&self) -> Result<i64, rusqlite::Error> {
-            self.conn.query_row("SELECT COUNT(*) FROM snapshots", [], |row| row.get(0))
+            self.conn
+                .query_row("SELECT COUNT(*) FROM snapshots", [], |row| row.get(0))
         }
     }
 

@@ -37,10 +37,28 @@ pub fn parse_shenandoah_event(line: &str) -> Option<GcEvent> {
     if let Some(caps) = SHEN_PAUSE_RE.captures(&log_line.message) {
         let id: u64 = caps.get(1)?.as_str().parse().ok()?;
         let phase_str = caps.get(2)?.as_str();
-        let cause = caps.get(3).map(|m| m.as_str().to_string()).unwrap_or_default();
-        let heap_before = caps.get(4).and_then(|m| m.as_str().parse::<i64>().ok()).unwrap_or(0) * 1024 * 1024;
-        let heap_after = caps.get(5).and_then(|m| m.as_str().parse::<i64>().ok()).unwrap_or(0) * 1024 * 1024;
-        let capacity = caps.get(6).and_then(|m| m.as_str().parse::<i64>().ok()).unwrap_or(0) * 1024 * 1024;
+        let cause = caps
+            .get(3)
+            .map(|m| m.as_str().to_string())
+            .unwrap_or_default();
+        let heap_before = caps
+            .get(4)
+            .and_then(|m| m.as_str().parse::<i64>().ok())
+            .unwrap_or(0)
+            * 1024
+            * 1024;
+        let heap_after = caps
+            .get(5)
+            .and_then(|m| m.as_str().parse::<i64>().ok())
+            .unwrap_or(0)
+            * 1024
+            * 1024;
+        let capacity = caps
+            .get(6)
+            .and_then(|m| m.as_str().parse::<i64>().ok())
+            .unwrap_or(0)
+            * 1024
+            * 1024;
         let pause_ms: f64 = caps.get(7)?.as_str().parse().ok()?;
 
         let phase = match phase_str {
@@ -69,9 +87,24 @@ pub fn parse_shenandoah_event(line: &str) -> Option<GcEvent> {
     if let Some(caps) = SHEN_CONCURRENT_RE.captures(&log_line.message) {
         let id: u64 = caps.get(1)?.as_str().parse().ok()?;
         let phase_str = caps.get(2)?.as_str();
-        let heap_before = caps.get(3).and_then(|m| m.as_str().parse::<i64>().ok()).unwrap_or(0) * 1024 * 1024;
-        let heap_after = caps.get(4).and_then(|m| m.as_str().parse::<i64>().ok()).unwrap_or(0) * 1024 * 1024;
-        let capacity = caps.get(5).and_then(|m| m.as_str().parse::<i64>().ok()).unwrap_or(0) * 1024 * 1024;
+        let heap_before = caps
+            .get(3)
+            .and_then(|m| m.as_str().parse::<i64>().ok())
+            .unwrap_or(0)
+            * 1024
+            * 1024;
+        let heap_after = caps
+            .get(4)
+            .and_then(|m| m.as_str().parse::<i64>().ok())
+            .unwrap_or(0)
+            * 1024
+            * 1024;
+        let capacity = caps
+            .get(5)
+            .and_then(|m| m.as_str().parse::<i64>().ok())
+            .unwrap_or(0)
+            * 1024
+            * 1024;
         let duration_ms: f64 = caps.get(6)?.as_str().parse().ok()?;
 
         let phase = match phase_str {

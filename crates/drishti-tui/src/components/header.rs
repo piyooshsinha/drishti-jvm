@@ -17,23 +17,34 @@ impl Component for Header {
 
         let uptime = if snap.jvm_info.uptime_ms > 0 {
             format!(" ▲{}", snap.jvm_info.uptime_human())
-        } else { String::new() };
+        } else {
+            String::new()
+        };
 
         let gc_str = if snap.jvm_info.gc_algorithm != drishti_core::model::GcAlgorithm::Unknown {
             format!(" {}", snap.jvm_info.gc_algorithm_str())
-        } else { String::new() };
+        } else {
+            String::new()
+        };
 
-        let readonly = if self.state.readonly { " [READONLY]" } else { "" };
+        let readonly = if self.state.readonly {
+            " [READONLY]"
+        } else {
+            ""
+        };
 
         let text = format!(
             " दृष्टि drishti-jvm │ {} {}{}{}{} ",
             status,
-            if !snap.jvm_info.vm_name.is_empty() { &snap.jvm_info.vm_name } else { "connecting..." },
-            uptime, gc_str, readonly,
+            if !snap.jvm_info.vm_name.is_empty() {
+                &snap.jvm_info.vm_name
+            } else {
+                "connecting..."
+            },
+            uptime,
+            gc_str,
+            readonly,
         );
-        frame.render_widget(
-            Paragraph::new(text).style(Style::default().fg(color)),
-            area,
-        );
+        frame.render_widget(Paragraph::new(text).style(Style::default().fg(color)), area);
     }
 }

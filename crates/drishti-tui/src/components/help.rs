@@ -16,7 +16,8 @@ pub fn draw_help_overlay(frame: &mut Frame) {
     frame.render_widget(Clear, popup_area);
 
     let help_text = vec![
-        Line::from("  दृष्टि drishti-jvm — Keybindings").style(Style::default().fg(Color::Cyan).bold()),
+        Line::from("  दृष्टि drishti-jvm — Keybindings")
+            .style(Style::default().fg(Color::Cyan).bold()),
         Line::from(""),
         Line::from("  Navigation").style(Style::default().fg(Color::Yellow).bold()),
         Line::from("    Tab / Shift+Tab    Cycle tabs"),

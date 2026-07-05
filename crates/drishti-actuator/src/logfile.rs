@@ -51,10 +51,13 @@ impl LogFileTailer {
     /// Initialize by getting the current file size (start from tail, not beginning).
     pub async fn init(&mut self) -> Result<u64, ActuatorError> {
         let url = format!("{}/logfile", self.base_url);
-        let resp = self.apply_auth(self.http.head(&url))
-            .send().await
+        let resp = self
+            .apply_auth(self.http.head(&url))
+            .send()
+            .await
             .map_err(|e| ActuatorError::Unreachable {
-                url: url.clone(), reason: e.to_string(),
+                url: url.clone(),
+                reason: e.to_string(),
             })?;
 
         if resp.status().as_u16() == 404 {
@@ -63,7 +66,8 @@ impl LogFileTailer {
             });
         }
 
-        let size = resp.headers()
+        let size = resp
+            .headers()
             .get("content-length")
             .and_then(|v| v.to_str().ok())
             .and_then(|v| v.parse::<u64>().ok())
@@ -78,10 +82,12 @@ impl LogFileTailer {
     pub async fn poll(&mut self) -> Result<Option<LogChunk>, ActuatorError> {
         let url = format!("{}/logfile", self.base_url);
 
-        let resp = self.apply_auth(self.http.get(&url))
+        let resp = self
+            .apply_auth(self.http.get(&url))
             .header("Range", format!("bytes={}-", self.offset))
-            .send().await
-            .map_err(|e| ActuatorError::Http(e))?;
+            .send()
+            .await
+            .map_err(ActuatorError::Http)?;
 
         let status = resp.status().as_u16();
 
@@ -89,14 +95,17 @@ impl LogFileTailer {
             // 206 Partial Content — we got new data
             206 => {
                 // Parse Content-Range: bytes N-M/total
-                let total_size = resp.headers()
+                let total_size = resp
+                    .headers()
                     .get("content-range")
                     .and_then(|v| v.to_str().ok())
-                    .and_then(|v| v.split('/').last())
+                    .and_then(|v| v.split('/').next_back())
                     .and_then(|v| v.parse::<u64>().ok())
                     .unwrap_or(0);
 
-                let body = resp.text().await
+                let body = resp
+                    .text()
+                    .await
                     .map_err(|e| ActuatorError::Parse(e.to_string()))?;
 
                 if body.is_empty() {
@@ -114,7 +123,9 @@ impl LogFileTailer {
             }
             // 200 OK — server doesn't support Range, sent everything
             200 => {
-                let body = resp.text().await
+                let body = resp
+                    .text()
+                    .await
                     .map_err(|e| ActuatorError::Parse(e.to_string()))?;
 
                 if body.len() as u64 <= self.offset {
@@ -143,14 +154,13 @@ impl LogFileTailer {
                 self.offset = 0;
                 Ok(None)
             }
-            404 => {
-                Err(ActuatorError::EndpointNotFound {
-                    endpoint: "/actuator/logfile".to_string(),
-                })
-            }
-            _ => {
-                Err(ActuatorError::Parse(format!("Unexpected status {} from /logfile", status)))
-            }
+            404 => Err(ActuatorError::EndpointNotFound {
+                endpoint: "/actuator/logfile".to_string(),
+            }),
+            _ => Err(ActuatorError::Parse(format!(
+                "Unexpected status {} from /logfile",
+                status
+            ))),
         }
     }
 
@@ -164,7 +174,9 @@ impl LogFileTailer {
         }
     }
 
-    pub fn offset(&self) -> u64 { self.offset }
+    pub fn offset(&self) -> u64 {
+        self.offset
+    }
 }
 
 /// Spawn a background task that tails the remote logfile and sends chunks.
@@ -183,7 +195,10 @@ pub async fn spawn_remote_log_tailer(
             tracing::info!("Remote log tailer initialized, file size: {} bytes", size);
         }
         Err(e) => {
-            tracing::warn!("Remote log tailer init failed: {} — /actuator/logfile may not be enabled", e);
+            tracing::warn!(
+                "Remote log tailer init failed: {} — /actuator/logfile may not be enabled",
+                e
+            );
             return;
         }
     }

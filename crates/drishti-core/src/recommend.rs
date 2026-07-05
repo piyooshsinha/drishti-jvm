@@ -77,11 +77,7 @@ impl RecommendationEngine {
     }
 
     /// Run all rules and return recommendations above the confidence threshold.
-    pub fn evaluate(
-        &self,
-        current: &JvmSnapshot,
-        history: &[JvmSnapshot],
-    ) -> Vec<Recommendation> {
+    pub fn evaluate(&self, current: &JvmSnapshot, history: &[JvmSnapshot]) -> Vec<Recommendation> {
         self.rules
             .iter()
             .filter_map(|rule| {

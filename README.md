@@ -1,5 +1,9 @@
 # दृष्टि — drishti-jvm
 
+[![CI](https://github.com/piyooshsinha/drishti-jvm/actions/workflows/ci.yml/badge.svg)](https://github.com/piyooshsinha/drishti-jvm/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![Rust](https://img.shields.io/badge/rust-2021-orange.svg)
+
 > A Rust + Ratatui TUI that monitors memory, scale, bugs, and performance of Spring Boot / JVM applications — and recommends JVM tuning.
 
 ![Overview tab — heap/CPU gauges, GC throughput, HTTP rate, connection pool, and live anomaly alerts](docs/ui-overview.svg)
@@ -36,6 +40,23 @@ cargo run -p drishti-tui -- \
 ![Console tab — REPL with dashboard, gc, and alerts commands](docs/ui-console.svg)
 
 *(Illustrative renders of the TUI layout — run it against the Docker lab below for the real thing.)*
+
+## Headless mode (scripting / CI)
+
+```bash
+drishti-jvm --once --json               # one JvmSnapshot as pretty JSON
+drishti-jvm --once --recommendations    # anomaly alerts + tuning flags as text
+drishti-jvm --once                      # compact human-readable summary
+```
+
+Exit code is non-zero if no data source is reachable, so it doubles as a health probe.
+
+## Configuration
+
+All URLs, polling intervals, and alert thresholds are configurable. Load order
+(later overrides earlier): compiled defaults → `/etc/drishti-jvm/config.toml` →
+`~/.config/drishti-jvm/config.toml` → `./drishti-jvm.toml` → `DRISHTI_*` env vars →
+CLI flags. See [config/default.toml](config/default.toml) for every knob.
 
 ## Keybindings
 

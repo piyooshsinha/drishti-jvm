@@ -6,8 +6,8 @@
 use crate::collector::AppState;
 use ratatui::prelude::*;
 use ratatui::widgets::*;
-use std::sync::Arc;
 use std::collections::VecDeque;
+use std::sync::Arc;
 
 /// A single log entry with parsed severity.
 #[derive(Debug, Clone)]
@@ -52,12 +52,19 @@ impl LogLevel {
 /// Parse a Spring Boot log line into a LogEntry.
 pub fn parse_log_line(line: &str) -> LogEntry {
     // Spring Boot default: 2024-01-15T10:30:00.123  INFO 12345 --- [main] c.e.App : message
-    let level = if line.contains(" ERROR ") { LogLevel::Error }
-        else if line.contains(" WARN ") { LogLevel::Warn }
-        else if line.contains(" INFO ") { LogLevel::Info }
-        else if line.contains(" DEBUG ") { LogLevel::Debug }
-        else if line.contains(" TRACE ") { LogLevel::Trace }
-        else { LogLevel::Info };
+    let level = if line.contains(" ERROR ") {
+        LogLevel::Error
+    } else if line.contains(" WARN ") {
+        LogLevel::Warn
+    } else if line.contains(" INFO ") {
+        LogLevel::Info
+    } else if line.contains(" DEBUG ") {
+        LogLevel::Debug
+    } else if line.contains(" TRACE ") {
+        LogLevel::Trace
+    } else {
+        LogLevel::Info
+    };
 
     let timestamp = line.get(..23).unwrap_or("").to_string();
     let message = line.to_string();
@@ -104,7 +111,9 @@ impl LogsTab {
         }
         if let Ok(mut buf) = self.log_buffer.lock() {
             buf.push_back(entry);
-            if buf.len() > 2000 { buf.pop_front(); }
+            if buf.len() > 2000 {
+                buf.pop_front();
+            }
         }
     }
 
@@ -133,29 +142,47 @@ impl LogsTab {
     }
 
     pub fn draw(&self, frame: &mut Frame, area: Rect) {
-        let chunks = Layout::default().direction(Direction::Vertical)
+        let chunks = Layout::default()
+            .direction(Direction::Vertical)
             .constraints([Constraint::Length(3), Constraint::Min(3)])
             .split(area);
 
         // Header: error/warn counts + level filter
-        let error_style = if self.error_count > 0 { Style::default().fg(Color::Red) } else { Style::default() };
-        let warn_style = if self.warn_count > 0 { Style::default().fg(Color::Yellow) } else { Style::default() };
-        let header_text = vec![
-            Line::from(vec![
-                Span::raw("  Total: "),
-                Span::styled(format!("{}", self.total_count), Style::default().fg(Color::White)),
-                Span::raw("  Errors: "),
-                Span::styled(format!("{}", self.error_count), error_style),
-                Span::raw("  Warns: "),
-                Span::styled(format!("{}", self.warn_count), warn_style),
-                Span::raw("  │  Filter: ≥"),
-                Span::styled(self.min_level.label(), Style::default().fg(self.min_level.color()).bold()),
-                Span::raw(" (L to cycle)"),
-                Span::raw(if self.auto_scroll { "  │  ↓AUTO" } else { "" }),
-            ]),
-        ];
+        let error_style = if self.error_count > 0 {
+            Style::default().fg(Color::Red)
+        } else {
+            Style::default()
+        };
+        let warn_style = if self.warn_count > 0 {
+            Style::default().fg(Color::Yellow)
+        } else {
+            Style::default()
+        };
+        let header_text = vec![Line::from(vec![
+            Span::raw("  Total: "),
+            Span::styled(
+                format!("{}", self.total_count),
+                Style::default().fg(Color::White),
+            ),
+            Span::raw("  Errors: "),
+            Span::styled(format!("{}", self.error_count), error_style),
+            Span::raw("  Warns: "),
+            Span::styled(format!("{}", self.warn_count), warn_style),
+            Span::raw("  │  Filter: ≥"),
+            Span::styled(
+                self.min_level.label(),
+                Style::default().fg(self.min_level.color()).bold(),
+            ),
+            Span::raw(" (L to cycle)"),
+            Span::raw(if self.auto_scroll {
+                "  │  ↓AUTO"
+            } else {
+                ""
+            }),
+        ])];
         frame.render_widget(
-            Paragraph::new(header_text).block(Block::default().title(" Logs ").borders(Borders::ALL)),
+            Paragraph::new(header_text)
+                .block(Block::default().title(" Logs ").borders(Borders::ALL)),
             chunks[0],
         );
 
@@ -167,7 +194,8 @@ impl LogsTab {
 
         if let Ok(buf) = self.log_buffer.lock() {
             // Filter by level
-            let filtered: Vec<&LogEntry> = buf.iter()
+            let filtered: Vec<&LogEntry> = buf
+                .iter()
                 .filter(|e| (e.level as u8) >= (self.min_level as u8))
                 .collect();
 
@@ -175,10 +203,12 @@ impl LogsTab {
             let offset = if self.auto_scroll {
                 total_filtered.saturating_sub(visible_height)
             } else {
-                self.scroll_offset.min(total_filtered.saturating_sub(visible_height))
+                self.scroll_offset
+                    .min(total_filtered.saturating_sub(visible_height))
             };
 
-            let lines: Vec<Line> = filtered.iter()
+            let lines: Vec<Line> = filtered
+                .iter()
                 .skip(offset)
                 .take(visible_height)
                 .map(|entry| {
@@ -188,11 +218,16 @@ impl LogsTab {
                             Style::default().fg(entry.level.color()).bold(),
                         ),
                         Span::styled(
-                            entry.message.chars().take(area.width as usize - 10).collect::<String>(),
+                            entry
+                                .message
+                                .chars()
+                                .take(area.width as usize - 10)
+                                .collect::<String>(),
                             Style::default().fg(entry.level.color()),
                         ),
                     ])
-                }).collect();
+                })
+                .collect();
 
             frame.render_widget(Paragraph::new(lines).block(block), chunks[1]);
         } else {

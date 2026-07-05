@@ -58,7 +58,8 @@ mod tests {
 
     #[test]
     fn parse_boot3_health() {
-        let json = r#"{"status":"UP","components":{"db":{"status":"UP"},"diskSpace":{"status":"UP"}}}"#;
+        let json =
+            r#"{"status":"UP","components":{"db":{"status":"UP"},"diskSpace":{"status":"UP"}}}"#;
         let resp: HealthResponse = serde_json::from_str(json).unwrap();
         let info = resp.to_health_info();
         assert_eq!(info.status, HealthStatus::Up);

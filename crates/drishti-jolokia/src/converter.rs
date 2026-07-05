@@ -1,8 +1,8 @@
 //! Convert Jolokia bulk responses into JvmSnapshot fields.
 
 use crate::response::JolokiaResponse;
-use drishti_core::model::*;
 use chrono::Utc;
+use drishti_core::model::*;
 
 /// Parse the 8-element standard bulk response into a JvmSnapshot.
 pub fn bulk_to_snapshot(responses: &[JolokiaResponse]) -> JvmSnapshot {
@@ -10,7 +10,9 @@ pub fn bulk_to_snapshot(responses: &[JolokiaResponse]) -> JvmSnapshot {
         timestamp: Utc::now(),
         ..Default::default()
     };
-    if responses.len() < 8 { return snap; }
+    if responses.len() < 8 {
+        return snap;
+    }
 
     // [0] Memory
     if responses[0].is_ok() {
@@ -27,8 +29,14 @@ pub fn bulk_to_snapshot(responses: &[JolokiaResponse]) -> JvmSnapshot {
         let v = &responses[1].value;
         snap.thread_summary = ThreadSummary {
             live: v.get("ThreadCount").and_then(|v| v.as_i64()).unwrap_or(0),
-            daemon: v.get("DaemonThreadCount").and_then(|v| v.as_i64()).unwrap_or(0),
-            peak: v.get("PeakThreadCount").and_then(|v| v.as_i64()).unwrap_or(0),
+            daemon: v
+                .get("DaemonThreadCount")
+                .and_then(|v| v.as_i64())
+                .unwrap_or(0),
+            peak: v
+                .get("PeakThreadCount")
+                .and_then(|v| v.as_i64())
+                .unwrap_or(0),
             ..Default::default()
         };
     }
@@ -40,8 +48,14 @@ pub fn bulk_to_snapshot(responses: &[JolokiaResponse]) -> JvmSnapshot {
                 let short = extract_mbean_name(name);
                 snap.gc_collectors.push(GcCollectorStats {
                     name: short,
-                    collection_count: attrs.get("CollectionCount").and_then(|v| v.as_i64()).unwrap_or(0),
-                    collection_time_ms: attrs.get("CollectionTime").and_then(|v| v.as_i64()).unwrap_or(0),
+                    collection_count: attrs
+                        .get("CollectionCount")
+                        .and_then(|v| v.as_i64())
+                        .unwrap_or(0),
+                    collection_time_ms: attrs
+                        .get("CollectionTime")
+                        .and_then(|v| v.as_i64())
+                        .unwrap_or(0),
                 });
             }
         }
@@ -61,7 +75,10 @@ pub fn bulk_to_snapshot(responses: &[JolokiaResponse]) -> JvmSnapshot {
                     name: short,
                     pool_type,
                     usage: attrs.get("Usage").map(parse_mem).unwrap_or_default(),
-                    collection_usage: attrs.get("CollectionUsage").filter(|v| !v.is_null()).map(parse_mem),
+                    collection_usage: attrs
+                        .get("CollectionUsage")
+                        .filter(|v| !v.is_null())
+                        .map(parse_mem),
                 });
             }
         }
@@ -71,10 +88,22 @@ pub fn bulk_to_snapshot(responses: &[JolokiaResponse]) -> JvmSnapshot {
     if responses[4].is_ok() {
         let v = &responses[4].value;
         snap.cpu = CpuMetrics {
-            process_cpu: v.get("ProcessCpuLoad").and_then(|v| v.as_f64()).unwrap_or(0.0),
-            system_cpu: v.get("SystemCpuLoad").and_then(|v| v.as_f64()).unwrap_or(0.0),
-            available_processors: v.get("AvailableProcessors").and_then(|v| v.as_i64()).unwrap_or(0) as i32,
-            system_load_average_1m: v.get("SystemLoadAverage").and_then(|v| v.as_f64()).unwrap_or(0.0),
+            process_cpu: v
+                .get("ProcessCpuLoad")
+                .and_then(|v| v.as_f64())
+                .unwrap_or(0.0),
+            system_cpu: v
+                .get("SystemCpuLoad")
+                .and_then(|v| v.as_f64())
+                .unwrap_or(0.0),
+            available_processors: v
+                .get("AvailableProcessors")
+                .and_then(|v| v.as_i64())
+                .unwrap_or(0) as i32,
+            system_load_average_1m: v
+                .get("SystemLoadAverage")
+                .and_then(|v| v.as_f64())
+                .unwrap_or(0.0),
         };
     }
 
@@ -82,14 +111,35 @@ pub fn bulk_to_snapshot(responses: &[JolokiaResponse]) -> JvmSnapshot {
     if responses[5].is_ok() {
         let v = &responses[5].value;
         snap.jvm_info = JvmInfo {
-            vm_name: v.get("VmName").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-            vm_vendor: v.get("VmVendor").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-            vm_version: v.get("VmVersion").and_then(|v| v.as_str()).unwrap_or("").to_string(),
-            spec_version: v.get("SpecVersion").and_then(|v| v.as_str()).unwrap_or("").to_string(),
+            vm_name: v
+                .get("VmName")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+            vm_vendor: v
+                .get("VmVendor")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+            vm_version: v
+                .get("VmVersion")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+            spec_version: v
+                .get("SpecVersion")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
             uptime_ms: v.get("Uptime").and_then(|v| v.as_i64()).unwrap_or(0),
-            input_arguments: v.get("InputArguments")
+            input_arguments: v
+                .get("InputArguments")
                 .and_then(|v| v.as_array())
-                .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+                .map(|a| {
+                    a.iter()
+                        .filter_map(|v| v.as_str().map(String::from))
+                        .collect()
+                })
                 .unwrap_or_default(),
             gc_algorithm: detect_gc(&snap.gc_collectors),
             max_heap_bytes: None,
@@ -102,9 +152,18 @@ pub fn bulk_to_snapshot(responses: &[JolokiaResponse]) -> JvmSnapshot {
     if responses[6].is_ok() {
         let v = &responses[6].value;
         snap.classes = ClassMetrics {
-            loaded: v.get("LoadedClassCount").and_then(|v| v.as_i64()).unwrap_or(0),
-            total_loaded: v.get("TotalLoadedClassCount").and_then(|v| v.as_i64()).unwrap_or(0),
-            unloaded: v.get("UnloadedClassCount").and_then(|v| v.as_i64()).unwrap_or(0),
+            loaded: v
+                .get("LoadedClassCount")
+                .and_then(|v| v.as_i64())
+                .unwrap_or(0),
+            total_loaded: v
+                .get("TotalLoadedClassCount")
+                .and_then(|v| v.as_i64())
+                .unwrap_or(0),
+            unloaded: v
+                .get("UnloadedClassCount")
+                .and_then(|v| v.as_i64())
+                .unwrap_or(0),
         };
     }
 
@@ -135,7 +194,9 @@ fn parse_mem(v: &serde_json::Value) -> MemoryUsage {
 }
 
 fn extract_mbean_name(mbean: &str) -> String {
-    mbean.split(',').find(|s| s.starts_with("name="))
+    mbean
+        .split(',')
+        .find(|s| s.starts_with("name="))
         .map(|s| s.trim_start_matches("name=").to_string())
         .unwrap_or_else(|| mbean.to_string())
 }
@@ -143,26 +204,42 @@ fn extract_mbean_name(mbean: &str) -> String {
 fn detect_gc(collectors: &[GcCollectorStats]) -> GcAlgorithm {
     for c in collectors {
         let n = c.name.to_lowercase();
-        if n.contains("zgc") { return GcAlgorithm::Zgc; }
-        if n.contains("shenandoah") { return GcAlgorithm::Shenandoah; }
-        if n.contains("g1") { return GcAlgorithm::G1; }
-        if n.contains("parallel") || n.contains("ps") { return GcAlgorithm::Parallel; }
+        if n.contains("zgc") {
+            return GcAlgorithm::Zgc;
+        }
+        if n.contains("shenandoah") {
+            return GcAlgorithm::Shenandoah;
+        }
+        if n.contains("g1") {
+            return GcAlgorithm::G1;
+        }
+        if n.contains("parallel") || n.contains("ps") {
+            return GcAlgorithm::Parallel;
+        }
     }
     GcAlgorithm::Unknown
 }
 
 fn parse_heap_flags(info: &mut JvmInfo) {
     for arg in &info.input_arguments {
-        if let Some(v) = arg.strip_prefix("-Xmx") { info.max_heap_bytes = Some(parse_size(v)); }
-        else if let Some(v) = arg.strip_prefix("-Xms") { info.initial_heap_bytes = Some(parse_size(v)); }
+        if let Some(v) = arg.strip_prefix("-Xmx") {
+            info.max_heap_bytes = Some(parse_size(v));
+        } else if let Some(v) = arg.strip_prefix("-Xms") {
+            info.initial_heap_bytes = Some(parse_size(v));
+        }
     }
 }
 
 fn parse_size(s: &str) -> i64 {
     let s = s.trim();
-    let (n, m) = if s.ends_with(['g', 'G']) { (&s[..s.len()-1], 1073741824i64) }
-        else if s.ends_with(['m', 'M']) { (&s[..s.len()-1], 1048576) }
-        else if s.ends_with(['k', 'K']) { (&s[..s.len()-1], 1024) }
-        else { (s, 1) };
+    let (n, m) = if s.ends_with(['g', 'G']) {
+        (&s[..s.len() - 1], 1073741824i64)
+    } else if s.ends_with(['m', 'M']) {
+        (&s[..s.len() - 1], 1048576)
+    } else if s.ends_with(['k', 'K']) {
+        (&s[..s.len() - 1], 1024)
+    } else {
+        (s, 1)
+    };
     n.parse::<i64>().unwrap_or(0) * m
 }

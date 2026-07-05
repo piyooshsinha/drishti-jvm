@@ -61,34 +61,44 @@ impl MBeansTab {
 
         for name in &mbean_names {
             let (domain, rest) = name.split_once(':').unwrap_or((name, ""));
-            domains.entry(domain.to_string()).or_default().push(rest.to_string());
+            domains
+                .entry(domain.to_string())
+                .or_default()
+                .push(rest.to_string());
         }
 
-        self.tree = domains.into_iter().map(|(domain, beans)| {
-            let children: Vec<MBeanNode> = beans.into_iter().map(|bean| {
-                let short_name = bean.split(',')
-                    .find(|s| s.starts_with("type=") || s.starts_with("name="))
-                    .unwrap_or(&bean)
-                    .to_string();
+        self.tree = domains
+            .into_iter()
+            .map(|(domain, beans)| {
+                let children: Vec<MBeanNode> = beans
+                    .into_iter()
+                    .map(|bean| {
+                        let short_name = bean
+                            .split(',')
+                            .find(|s| s.starts_with("type=") || s.starts_with("name="))
+                            .unwrap_or(&bean)
+                            .to_string();
+                        MBeanNode {
+                            name: short_name,
+                            full_path: format!("{}:{}", domain, bean),
+                            is_domain: false,
+                            expanded: false,
+                            children: vec![],
+                            attributes: BTreeMap::new(),
+                        }
+                    })
+                    .collect();
+
                 MBeanNode {
-                    name: short_name,
-                    full_path: format!("{}:{}", domain, bean),
-                    is_domain: false,
+                    name: domain.clone(),
+                    full_path: domain,
+                    is_domain: true,
                     expanded: false,
-                    children: vec![],
+                    children,
                     attributes: BTreeMap::new(),
                 }
-            }).collect();
-
-            MBeanNode {
-                name: domain.clone(),
-                full_path: domain,
-                is_domain: true,
-                expanded: false,
-                children,
-                attributes: BTreeMap::new(),
-            }
-        }).collect();
+            })
+            .collect();
 
         self.tree_loaded = true;
         self.rebuild_flat_view();
@@ -119,7 +129,9 @@ impl MBeansTab {
     }
 
     pub fn toggle_selected(&mut self) {
-        if self.selected_index >= self.flat_view.len() { return; }
+        if self.selected_index >= self.flat_view.len() {
+            return;
+        }
         let path = self.flat_view[self.selected_index].full_path.clone();
         let is_domain = self.flat_view[self.selected_index].is_domain;
 
@@ -158,7 +170,8 @@ impl MBeansTab {
         }
 
         // Split: left tree (40%) | right attributes (60%)
-        let chunks = Layout::default().direction(Direction::Horizontal)
+        let chunks = Layout::default()
+            .direction(Direction::Horizontal)
             .constraints([Constraint::Percentage(40), Constraint::Percentage(60)])
             .split(area);
 
@@ -166,15 +179,20 @@ impl MBeansTab {
         let visible_height = chunks[0].height.saturating_sub(2) as usize;
         let scroll = self.selected_index.saturating_sub(visible_height / 2);
 
-        let items: Vec<ListItem> = self.flat_view.iter().enumerate()
+        let items: Vec<ListItem> = self
+            .flat_view
+            .iter()
+            .enumerate()
             .skip(scroll)
             .take(visible_height)
             .map(|(i, node)| {
                 let indent = "  ".repeat(node.depth);
-                let icon = if node.is_domain {
-                    if node.expanded { "▼ " } else { "▶ " }
-                } else if node.has_children {
-                    if node.expanded { "▼ " } else { "▶ " }
+                let icon = if node.is_domain || node.has_children {
+                    if node.expanded {
+                        "▼ "
+                    } else {
+                        "▶ "
+                    }
                 } else {
                     "  "
                 };
@@ -186,7 +204,8 @@ impl MBeansTab {
                     Style::default().fg(Color::White)
                 };
                 ListItem::new(format!("{}{}{}", indent, icon, node.name)).style(style)
-            }).collect();
+            })
+            .collect();
 
         let tree_block = Block::default()
             .title(format!(" MBeans ({} domains) ", self.tree.len()))
@@ -210,18 +229,25 @@ impl MBeansTab {
             );
         } else {
             let attr_height = chunks[1].height.saturating_sub(2) as usize;
-            let rows: Vec<Row> = self.selected_attrs.iter()
+            let rows: Vec<Row> = self
+                .selected_attrs
+                .iter()
                 .skip(self.attr_scroll)
                 .take(attr_height)
                 .map(|(k, v)| {
                     let truncated_val: String = v.chars().take(60).collect();
                     Row::new(vec![k.clone(), truncated_val])
-                }).collect();
+                })
+                .collect();
 
-            let table = Table::new(rows, [Constraint::Percentage(35), Constraint::Percentage(65)])
-                .header(Row::new(vec!["Attribute", "Value"])
-                    .style(Style::default().fg(Color::Cyan).bold()))
-                .block(attr_block);
+            let table = Table::new(
+                rows,
+                [Constraint::Percentage(35), Constraint::Percentage(65)],
+            )
+            .header(
+                Row::new(vec!["Attribute", "Value"]).style(Style::default().fg(Color::Cyan).bold()),
+            )
+            .block(attr_block);
             frame.render_widget(table, chunks[1]);
         }
     }

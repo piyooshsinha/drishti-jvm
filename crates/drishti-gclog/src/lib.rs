@@ -11,11 +11,11 @@
 //! ```
 //! Prefix: `[ISO-8601][uptime][level][tags] message`
 
-pub mod parser;
 pub mod g1;
-pub mod zgc;
+pub mod parser;
 pub mod shenandoah;
 pub mod tailer;
+pub mod zgc;
 
 use chrono::{DateTime, Utc};
 use drishti_core::model::GcAlgorithm;
@@ -89,13 +89,16 @@ mod tests {
 
     #[test]
     fn detect_g1() {
-        let lines = vec!["[info][gc] GC(5) Pause Young (Normal) (G1 Evacuation Pause) 45M->12M(512M) 3.456ms"];
+        let lines = vec![
+            "[info][gc] GC(5) Pause Young (Normal) (G1 Evacuation Pause) 45M->12M(512M) 3.456ms",
+        ];
         assert_eq!(detect_algorithm(&lines), GcAlgorithm::G1);
     }
 
     #[test]
     fn detect_zgc_generational() {
-        let lines = vec!["[info][gc] GC(0) Young Garbage Collection (Allocation Rate) 128M->64M 0.5ms"];
+        let lines =
+            vec!["[info][gc] GC(0) Young Garbage Collection (Allocation Rate) 128M->64M 0.5ms"];
         assert_eq!(detect_algorithm(&lines), GcAlgorithm::ZgcGenerational);
     }
 

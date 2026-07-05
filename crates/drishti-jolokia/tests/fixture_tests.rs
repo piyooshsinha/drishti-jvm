@@ -1,8 +1,8 @@
 //! Tests that parse saved Jolokia fixtures into JvmSnapshot.
 
+use drishti_core::model::GcAlgorithm;
 use drishti_jolokia::converter::bulk_to_snapshot;
 use drishti_jolokia::response::JolokiaResponse;
-use drishti_core::model::GcAlgorithm;
 
 fn load_fixture(name: &str) -> String {
     let path = format!("{}/tests/fixtures/{}", env!("CARGO_MANIFEST_DIR"), name);
@@ -18,7 +18,12 @@ fn parse_bulk_response_fixture() {
 
     // All should be OK
     for (i, r) in responses.iter().enumerate() {
-        assert!(r.is_ok(), "Response {} should be OK, got status {}", i, r.status);
+        assert!(
+            r.is_ok(),
+            "Response {} should be OK, got status {}",
+            i,
+            r.status
+        );
     }
 
     let snap = bulk_to_snapshot(&responses);
@@ -26,8 +31,11 @@ fn parse_bulk_response_fixture() {
     // Memory
     assert_eq!(snap.heap.used, 268435456, "Heap used should be 256MB");
     assert_eq!(snap.heap.max, 536870912, "Heap max should be 512MB");
-    assert!(snap.heap.usage_pct().unwrap() > 49.0 && snap.heap.usage_pct().unwrap() < 51.0,
-        "Heap should be ~50%, got {:.1}%", snap.heap.usage_pct().unwrap());
+    assert!(
+        snap.heap.usage_pct().unwrap() > 49.0 && snap.heap.usage_pct().unwrap() < 51.0,
+        "Heap should be ~50%, got {:.1}%",
+        snap.heap.usage_pct().unwrap()
+    );
     assert!(snap.non_heap.used > 0, "Non-heap should have data");
 
     // Threads
@@ -37,16 +45,35 @@ fn parse_bulk_response_fixture() {
 
     // GC collectors
     assert_eq!(snap.gc_collectors.len(), 2);
-    let young = snap.gc_collectors.iter().find(|c| c.name.contains("Young")).unwrap();
+    let young = snap
+        .gc_collectors
+        .iter()
+        .find(|c| c.name.contains("Young"))
+        .unwrap();
     assert_eq!(young.collection_count, 142);
-    let old = snap.gc_collectors.iter().find(|c| c.name.contains("Old")).unwrap();
+    let old = snap
+        .gc_collectors
+        .iter()
+        .find(|c| c.name.contains("Old"))
+        .unwrap();
     assert_eq!(old.collection_count, 3);
 
     // Memory pools
-    assert!(snap.memory_pools.len() >= 3, "Should have at least 3 memory pools");
-    let eden = snap.memory_pools.iter().find(|p| p.name.contains("Eden")).unwrap();
+    assert!(
+        snap.memory_pools.len() >= 3,
+        "Should have at least 3 memory pools"
+    );
+    let eden = snap
+        .memory_pools
+        .iter()
+        .find(|p| p.name.contains("Eden"))
+        .unwrap();
     assert_eq!(eden.pool_type, drishti_core::model::PoolType::Heap);
-    let metaspace = snap.memory_pools.iter().find(|p| p.name.contains("Metaspace")).unwrap();
+    let metaspace = snap
+        .memory_pools
+        .iter()
+        .find(|p| p.name.contains("Metaspace"))
+        .unwrap();
     assert_eq!(metaspace.pool_type, drishti_core::model::PoolType::NonHeap);
 
     // CPU

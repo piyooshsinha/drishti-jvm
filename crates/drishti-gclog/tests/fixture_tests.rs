@@ -1,8 +1,8 @@
-use drishti_gclog::g1::parse_g1_log;
-use drishti_gclog::zgc::parse_zgc_log;
-use drishti_gclog::shenandoah::parse_shenandoah_log;
-use drishti_gclog::detect_algorithm;
 use drishti_core::model::{GcAlgorithm, GcPhase};
+use drishti_gclog::detect_algorithm;
+use drishti_gclog::g1::parse_g1_log;
+use drishti_gclog::shenandoah::parse_shenandoah_log;
+use drishti_gclog::zgc::parse_zgc_log;
 
 fn load_fixture(name: &str) -> String {
     let path = format!("{}/tests/fixtures/{}", env!("CARGO_MANIFEST_DIR"), name);

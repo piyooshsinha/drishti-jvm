@@ -163,12 +163,7 @@ impl<T: Clone> TimeSeries<T> {
             intercept,
             r_squared,
             sample_count: n,
-            window_secs: self
-                .buf
-                .back()?
-                .0
-                .duration_since(origin)
-                .as_secs_f64(),
+            window_secs: self.buf.back()?.0.duration_since(origin).as_secs_f64(),
         })
     }
 
@@ -255,7 +250,7 @@ mod tests {
     #[test]
     fn time_to_reach_extrapolation() {
         let result = RegressionResult {
-            slope: 100.0,          // 100 bytes/sec
+            slope: 100.0, // 100 bytes/sec
             intercept: 0.0,
             r_squared: 0.95,
             sample_count: 20,

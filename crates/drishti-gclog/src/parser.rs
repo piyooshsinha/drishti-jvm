@@ -12,9 +12,7 @@ use std::sync::LazyLock;
 /// Regex for the unified log prefix.
 /// Matches: `[2024-01-15T10:30:00.123+0000][1.234s][info][gc,phases] message`
 static PREFIX_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(
-        r"^\[([^\]]*)\]\[([0-9.]+)s\]\[(\w+)\]\[([^\]]*)\]\s*(.*)"
-    ).unwrap()
+    Regex::new(r"^\[([^\]]*)\]\[([0-9.]+)s\]\[(\w+)\]\[([^\]]*)\]\s*(.*)").unwrap()
 });
 
 /// Parse a single unified log line into its prefix components + message.

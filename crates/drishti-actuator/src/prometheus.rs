@@ -91,10 +91,7 @@ fn parse_labels(s: &str) -> HashMap<String, String> {
         let pair = pair.trim();
         if let Some(eq_pos) = pair.find('=') {
             let key = pair[..eq_pos].trim().to_string();
-            let val = pair[eq_pos + 1..]
-                .trim()
-                .trim_matches('"')
-                .to_string();
+            let val = pair[eq_pos + 1..].trim().trim_matches('"').to_string();
             if !key.is_empty() {
                 labels.insert(key, val);
             }
