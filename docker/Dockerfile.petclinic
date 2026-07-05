@@ -1,0 +1,67 @@
+##############################################################################
+# Petclinic + Jolokia + Full Actuator — ready for jvmtui development
+##############################################################################
+
+FROM eclipse-temurin:21-jdk AS builder
+
+WORKDIR /build
+
+# Clone Petclinic
+RUN apt-get update && apt-get install -y git && \
+    git clone --depth 1 https://github.com/spring-projects/spring-petclinic.git .
+
+# Append our Actuator + HikariCP + Tomcat config
+RUN cat >> src/main/resources/application.properties << 'EOF'
+
+# ============================================================
+# jvmtui: Actuator endpoints (expose everything for monitoring)
+# ============================================================
+management.endpoints.web.exposure.include=health,info,metrics,prometheus,threaddump,heapdump,loggers,httpexchanges,env,beans,caches,scheduledtasks,mappings,conditions
+management.endpoint.health.show-details=always
+management.endpoint.health.show-components=always
+management.metrics.tags.application=petclinic
+management.info.env.enabled=true
+management.info.java.enabled=true
+management.info.os.enabled=true
+
+# ============================================================
+# jvmtui: HikariCP observability
+# ============================================================
+spring.datasource.hikari.register-mbeans=true
+spring.datasource.hikari.pool-name=PetclinicPool
+spring.datasource.hikari.maximum-pool-size=10
+spring.datasource.hikari.minimum-idle=5
+spring.datasource.hikari.leak-detection-threshold=60000
+spring.datasource.hikari.metrics.enabled=true
+
+# ============================================================
+# jvmtui: Tomcat thread metrics
+# ============================================================
+server.tomcat.mbeanregistry.enabled=true
+
+# ============================================================
+# jvmtui: HTTP exchange recording (last 100 requests)
+# ============================================================
+management.httpexchanges.recording.include=REQUEST_HEADERS,RESPONSE_HEADERS,TIME_TAKEN,PRINCIPAL
+EOF
+
+# Build (skip tests for faster image build)
+RUN ./mvnw package -DskipTests -q
+
+# ---------- Runtime stage ----------
+FROM eclipse-temurin:21-jre
+
+WORKDIR /app
+
+# Download Jolokia agent
+ADD https://repo1.maven.org/maven2/org/jolokia/jolokia-agent-jvm/2.1.2/jolokia-agent-jvm-2.1.2-javaagent.jar /app/jolokia-agent-jvm.jar
+
+# Copy built jar
+COPY --from=builder /build/target/*.jar /app/petclinic.jar
+
+# Install curl for healthcheck
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
+EXPOSE 8080 8778 9010
+
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/petclinic.jar"]

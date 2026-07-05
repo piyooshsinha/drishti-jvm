@@ -1,0 +1,81 @@
+##############################################################################
+# jvmtui — Target Spring Boot Lab Environment
+#
+# Spins up Spring Petclinic with:
+#   - Full Actuator endpoints exposed
+#   - Jolokia agent on port 8778
+#   - G1GC with unified GC logging
+#   - HikariCP MBean registration + leak detection
+#   - Tomcat MBean registry enabled
+#
+# Usage:
+#   docker compose up -d
+#   docker compose logs -f petclinic     # watch app logs
+#   docker compose exec petclinic tail -f /app/gc.log  # watch GC logs
+#   docker compose down
+##############################################################################
+
+services:
+  petclinic:
+    build:
+      context: .
+      dockerfile: Dockerfile.petclinic
+    container_name: jvmtui-target
+    ports:
+      - "8080:8080"   # Spring Boot app
+      - "8778:8778"   # Jolokia agent
+      - "9010:9010"   # JMX (optional, for JConsole comparison)
+    environment:
+      - JAVA_OPTS=
+        -Xms512m -Xmx512m
+        -XX:+UseG1GC
+        -XX:MaxGCPauseMillis=200
+        -Xlog:gc*,safepoint:file=/app/gc.log:time,uptime,level,tags:filecount=5,filesize=20M
+        -Dcom.sun.management.jmxremote
+        -Dcom.sun.management.jmxremote.port=9010
+        -Dcom.sun.management.jmxremote.rmi.port=9010
+        -Dcom.sun.management.jmxremote.authenticate=false
+        -Dcom.sun.management.jmxremote.ssl=false
+        -Djava.rmi.server.hostname=0.0.0.0
+        -javaagent:/app/jolokia-agent-jvm.jar=port=8778,host=0.0.0.0
+    volumes:
+      - gc-logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  # Load generator — keeps steady traffic flowing for realistic metrics
+  loadgen:
+    image: alpine/curl:latest
+    container_name: jvmtui-loadgen
+    depends_on:
+      petclinic:
+        condition: service_healthy
+    entrypoint: /bin/sh
+    command:
+      - -c
+      - |
+        echo "=== Load generator started ==="
+        echo "Sending requests to Petclinic every 200ms..."
+        while true; do
+          # Mix of endpoints to generate varied metrics
+          curl -s http://petclinic:8080/owners?lastName= > /dev/null 2>&1
+          sleep 0.2
+          curl -s http://petclinic:8080/owners/1 > /dev/null 2>&1
+          sleep 0.2
+          curl -s http://petclinic:8080/vets.html > /dev/null 2>&1
+          sleep 0.2
+          curl -s http://petclinic:8080/ > /dev/null 2>&1
+          sleep 0.2
+          # Occasional 404 to generate error metrics
+          curl -s http://petclinic:8080/nonexistent > /dev/null 2>&1
+          sleep 1
+        done
+    restart: unless-stopped
+
+volumes:
+  gc-logs:

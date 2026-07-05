@@ -1,0 +1,120 @@
+# ============================================================
+# jvmtui — Default Configuration
+# ============================================================
+# Override per-machine in: ~/.config/jvmtui/config.toml
+# Override per-project in: ./jvmtui.toml
+# Override via env:        JVMTUI_TARGET__ACTUATOR_URL=http://...
+# ============================================================
+
+[target]
+# Data source mode: "actuator" | "jolokia" | "both"
+# "both" is recommended — Actuator for bulk prometheus scrape,
+# Jolokia for MBean access and deadlock detection
+mode = "both"
+
+actuator_url = "http://localhost:8080/actuator"
+jolokia_url  = "http://localhost:8778/jolokia"
+
+# GC log path (leave empty to disable GC log tailing)
+gc_log_path = ""
+
+# Application log path (leave empty to disable log tailing)
+app_log_path = ""
+
+[target.auth]
+# Authentication for Actuator/Jolokia endpoints
+# type: "none" | "basic" | "bearer"
+type = "none"
+# username = "admin"
+# password = "admin"
+# token = "..."
+
+[target.tls]
+# TLS configuration for HTTPS endpoints
+# accept_invalid_certs = false
+# ca_cert_path = ""
+# client_cert_path = ""
+# client_key_path = ""
+
+[polling]
+# How often to fetch metrics (seconds)
+metrics_interval_secs = 2
+
+# How often to poll for GC log changes (milliseconds)
+gc_log_poll_ms = 500
+
+# How often to run thread dump (seconds) — heavier operation
+thread_dump_interval_secs = 10
+
+# How often to check for deadlocks (seconds)
+deadlock_check_interval_secs = 15
+
+# How often to run anomaly detection rules (seconds)
+anomaly_eval_interval_secs = 30
+
+[ui]
+# Color theme: "dark" | "light" | "solarized" | "dracula"
+theme = "dark"
+
+# UI tick rate (Hz) — how often data is processed
+tick_rate_hz = 4
+
+# Render rate (Hz) — how often the screen redraws
+# 30 is smooth, 15 is fine for monitoring, lower saves CPU
+render_rate_hz = 30
+
+# Chart history width multiplier (relative to terminal width)
+# 2 = 2x terminal width of data points kept in memory
+chart_history_multiplier = 2
+
+# Show sparklines in overview tab
+show_sparklines = true
+
+[alerts]
+# Suppress duplicate alerts for this many seconds
+suppress_duration_secs = 300
+
+# Enable desktop notifications (requires notify-send on Linux)
+desktop_notifications = false
+
+# Enable sound alerts (terminal bell)
+sound_alerts = false
+
+[alerts.thresholds]
+# Override default anomaly detection thresholds
+
+# Memory leak: slope/Xmx per hour (default: 0.05 = 5%)
+memory_leak_warn_slope = 0.05
+memory_leak_critical_slope = 0.10
+
+# GC throughput minimum (default: 0.95 = 95%)
+gc_throughput_warn = 0.95
+
+# Allocation rate alert (bytes/sec, default: 1GB/s)
+allocation_rate_warn = 1073741824
+
+# HikariCP pending connections duration before alert (seconds)
+hikaricp_pending_warn_secs = 30
+hikaricp_pending_critical_secs = 60
+
+[recommendations]
+# Enable/disable recommendation categories
+heap_sizing = true
+gc_selection = true
+gc_tuning = true
+hikaricp_tuning = true
+thread_pool_tuning = true
+code_level = true
+
+# Confidence threshold — only show recommendations above this (0.0-1.0)
+min_confidence = 0.5
+
+[export]
+# Headless mode output format: "json" | "table" | "csv"
+headless_format = "json"
+
+# SQLite persistence for historical data (leave empty to disable)
+# sqlite_path = "~/.local/share/jvmtui/history.db"
+
+# Retention period for historical data (hours)
+# history_retention_hours = 168  # 7 days

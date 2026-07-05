@@ -1,0 +1,37 @@
+# Rust
+/target/
+**/target/
+
+# Fixtures (generated, not committed — regenerate with verify-sources.sh)
+/fixtures/*.json
+/fixtures/*.txt
+/fixtures/*.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker volumes
+docker/data/
+
+# Config overrides (may contain credentials)
+config/local.toml
+config/*.local.toml
+
+# Profiling / heap dumps
+*.hprof
+*.jfr
+*.nps
+
+# Logs
+*.log
+
+# ...but keep committed test fixtures
+!crates/*/tests/fixtures/*

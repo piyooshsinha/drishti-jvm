@@ -1,0 +1,20 @@
+[package]
+name = "drishti-jolokia"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Jolokia HTTP/JSON client for drishti-jvm — bulk MBean reads, deadlock detection, MBean browsing"
+
+[dependencies]
+drishti-core = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+chrono = { workspace = true }
+tokio = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+anyhow = { workspace = true }
+tokio = { workspace = true, features = ["test-util"] }

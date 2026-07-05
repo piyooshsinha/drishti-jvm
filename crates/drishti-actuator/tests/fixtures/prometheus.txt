@@ -1,0 +1,81 @@
+# HELP jvm_memory_used_bytes The amount of used memory
+# TYPE jvm_memory_used_bytes gauge
+jvm_memory_used_bytes{area="heap",id="G1 Eden Space"} 6.7108864E7
+jvm_memory_used_bytes{area="heap",id="G1 Old Gen"} 1.80355072E8
+jvm_memory_used_bytes{area="heap",id="G1 Survivor Space"} 2.097152E7
+jvm_memory_used_bytes{area="nonheap",id="Metaspace"} 6.5E7
+jvm_memory_used_bytes{area="nonheap",id="CodeCache"} 2.0E7
+# HELP jvm_memory_max_bytes The maximum amount of memory
+# TYPE jvm_memory_max_bytes gauge
+jvm_memory_max_bytes{area="heap",id="G1 Eden Space"} -1.0
+jvm_memory_max_bytes{area="heap",id="G1 Old Gen"} 5.36870912E8
+jvm_memory_max_bytes{area="heap",id="G1 Survivor Space"} -1.0
+jvm_memory_max_bytes{area="nonheap",id="Metaspace"} -1.0
+# HELP jvm_memory_committed_bytes The committed memory
+# TYPE jvm_memory_committed_bytes gauge
+jvm_memory_committed_bytes{area="heap",id="G1 Eden Space"} 1.09051904E8
+jvm_memory_committed_bytes{area="heap",id="G1 Old Gen"} 4.27819008E8
+jvm_memory_committed_bytes{area="nonheap",id="Metaspace"} 6.7108864E7
+# HELP process_cpu_usage The process CPU usage
+# TYPE process_cpu_usage gauge
+process_cpu_usage 0.42
+# HELP system_cpu_usage The system CPU usage
+# TYPE system_cpu_usage gauge
+system_cpu_usage 0.61
+# HELP system_cpu_count Available processors
+# TYPE system_cpu_count gauge
+system_cpu_count 8.0
+# HELP system_load_average_1m System load average
+# TYPE system_load_average_1m gauge
+system_load_average_1m 2.5
+# HELP jvm_threads_live_threads Current live threads
+# TYPE jvm_threads_live_threads gauge
+jvm_threads_live_threads 48.0
+# HELP jvm_threads_daemon_threads Daemon threads
+# TYPE jvm_threads_daemon_threads gauge
+jvm_threads_daemon_threads 32.0
+# HELP jvm_threads_peak_threads Peak threads
+# TYPE jvm_threads_peak_threads gauge
+jvm_threads_peak_threads 52.0
+# HELP jvm_threads_states_threads Thread states
+# TYPE jvm_threads_states_threads gauge
+jvm_threads_states_threads{state="runnable"} 12.0
+jvm_threads_states_threads{state="waiting"} 20.0
+jvm_threads_states_threads{state="timed-waiting"} 14.0
+jvm_threads_states_threads{state="blocked"} 2.0
+# HELP jvm_classes_loaded_classes Loaded classes
+# TYPE jvm_classes_loaded_classes gauge
+jvm_classes_loaded_classes 12543.0
+# HELP jvm_classes_unloaded_classes_total Unloaded classes
+# TYPE jvm_classes_unloaded_classes_total counter
+jvm_classes_unloaded_classes_total 57.0
+# HELP jvm_gc_pause_seconds GC pause duration
+# TYPE jvm_gc_pause_seconds summary
+jvm_gc_pause_seconds_count{action="end of minor GC",cause="G1 Evacuation Pause"} 142.0
+jvm_gc_pause_seconds_sum{action="end of minor GC",cause="G1 Evacuation Pause"} 1.85
+jvm_gc_pause_seconds_count{action="end of major GC",cause="G1 Humongous Allocation"} 3.0
+jvm_gc_pause_seconds_sum{action="end of major GC",cause="G1 Humongous Allocation"} 0.45
+# HELP http_server_requests_seconds HTTP request metrics
+# TYPE http_server_requests_seconds summary
+http_server_requests_seconds_count{method="GET",status="200",uri="/owners"} 5432.0
+http_server_requests_seconds_sum{method="GET",status="200",uri="/owners"} 27.16
+http_server_requests_seconds_max{method="GET",status="200",uri="/owners"} 0.245
+http_server_requests_seconds_count{method="GET",status="200",uri="/vets.html"} 2100.0
+http_server_requests_seconds_sum{method="GET",status="200",uri="/vets.html"} 6.3
+http_server_requests_seconds_max{method="GET",status="200",uri="/vets.html"} 0.089
+http_server_requests_seconds_count{method="GET",status="404",uri="/nonexistent"} 150.0
+http_server_requests_seconds_sum{method="GET",status="404",uri="/nonexistent"} 0.15
+http_server_requests_seconds_max{method="GET",status="404",uri="/nonexistent"} 0.005
+# HELP hikaricp_connections_active Active HikariCP connections
+# TYPE hikaricp_connections_active gauge
+hikaricp_connections_active{pool="PetclinicPool"} 3.0
+hikaricp_connections_idle{pool="PetclinicPool"} 7.0
+hikaricp_connections_pending{pool="PetclinicPool"} 0.0
+hikaricp_connections{pool="PetclinicPool"} 10.0
+hikaricp_connections_max{pool="PetclinicPool"} 10.0
+hikaricp_connections_timeout_total{pool="PetclinicPool"} 0.0
+# HELP tomcat_threads_busy_threads Busy Tomcat threads
+# TYPE tomcat_threads_busy_threads gauge
+tomcat_threads_busy_threads{name="http-nio-8080"} 5.0
+tomcat_threads_current_threads{name="http-nio-8080"} 10.0
+tomcat_threads_config_max_threads{name="http-nio-8080"} 200.0

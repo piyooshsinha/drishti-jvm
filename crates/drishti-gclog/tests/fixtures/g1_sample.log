@@ -1,0 +1,5 @@
+[2024-01-15T10:30:00.100+0000][1.100s][info][gc] GC(0) Pause Young (Normal) (G1 Evacuation Pause) 24M->5M(512M) 2.345ms
+[2024-01-15T10:30:01.200+0000][2.200s][info][gc] GC(1) Pause Young (Normal) (G1 Evacuation Pause) 45M->12M(512M) 3.456ms
+[2024-01-15T10:30:05.000+0000][6.000s][info][gc] GC(2) Pause Young (Concurrent Start) (G1 Humongous Allocation) 120M->80M(512M) 8.901ms
+[2024-01-15T10:30:10.000+0000][11.00s][info][gc] GC(3) Pause Mixed (G1 Evacuation Pause) 200M->90M(512M) 15.234ms
+[2024-01-15T10:35:00.000+0000][61.00s][info][gc] GC(4) Pause Full (Allocation Failure) 480M->120M(512M) 567.890ms

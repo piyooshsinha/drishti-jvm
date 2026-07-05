@@ -1,0 +1,19 @@
+[package]
+name = "drishti-gclog"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "GC log parser for drishti-jvm — G1, ZGC, and Shenandoah unified log parsing"
+
+[dependencies]
+drishti-core = { workspace = true }
+nom = { workspace = true }
+regex = { workspace = true }
+chrono = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+
+[dev-dependencies]
+anyhow = { workspace = true }

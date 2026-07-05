@@ -1,0 +1,31 @@
+[package]
+name = "drishti-tui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Ratatui terminal UI for drishti-jvm — the main binary"
+
+[[bin]]
+name = "drishti-jvm"
+path = "src/main.rs"
+
+[dependencies]
+drishti-core = { workspace = true }
+drishti-jolokia = { workspace = true }
+drishti-actuator = { workspace = true }
+drishti-gclog = { workspace = true }
+ratatui = { workspace = true }
+crossterm = { workspace = true }
+tokio = { workspace = true }
+tokio-stream = { workspace = true }
+tokio-util = { workspace = true }
+arc-swap = { workspace = true }
+clap = { workspace = true }
+figment = { workspace = true }
+color-eyre = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+chrono = { workspace = true }
