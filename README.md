@@ -2,6 +2,8 @@
 
 > A Rust + Ratatui TUI that monitors memory, scale, bugs, and performance of Spring Boot / JVM applications — and recommends JVM tuning.
 
+![Overview tab — heap/CPU gauges, GC throughput, HTTP rate, connection pool, and live anomaly alerts](docs/ui-overview.svg)
+
 ## Quick Start
 
 ```bash
@@ -20,6 +22,20 @@ cargo run -p drishti-tui -- \
   --actuator http://localhost:8080/actuator \
   --jolokia http://localhost:8778/jolokia
 ```
+
+## Screens
+
+10 tabs: Overview, Memory, Threads, HTTP, DB/Pool, Logs, MBeans, Profiler, Console, Recommend.
+
+**Recommend** — anomaly alerts (memory leak regression, GC pressure, deadlocks, pool exhaustion, high heap) paired with copy-pasteable JVM tuning flags:
+
+![Recommendations tab — alert table and tuning recommendations with JVM flags](docs/ui-recommendations.svg)
+
+**Console** — Arthas-style REPL with command history:
+
+![Console tab — REPL with dashboard, gc, and alerts commands](docs/ui-console.svg)
+
+*(Illustrative renders of the TUI layout — run it against the Docker lab below for the real thing.)*
 
 ## Keybindings
 
