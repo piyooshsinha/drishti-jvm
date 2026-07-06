@@ -51,6 +51,17 @@ drishti-jvm --once                      # compact human-readable summary
 
 Exit code is non-zero if no data source is reachable, so it doubles as a health probe.
 
+## Persistence
+
+Build with `--features persistence` and pass `--db metrics.db` to record a snapshot
+row every 10s into SQLite (72h retention, pruned hourly) so trends survive restarts.
+
+## End-to-end test without Docker
+
+`./scripts/e2e-local.sh` needs only `java`, `curl`, and `jq`: it generates a Spring
+Boot app via start.spring.io, runs it with the Jolokia agent and G1 GC logging, and
+asserts that a merged snapshot contains real data from both sources.
+
 ## Configuration
 
 All URLs, polling intervals, and alert thresholds are configurable. Load order

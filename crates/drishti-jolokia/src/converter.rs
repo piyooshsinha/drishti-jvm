@@ -194,7 +194,10 @@ fn parse_mem(v: &serde_json::Value) -> MemoryUsage {
 }
 
 fn extract_mbean_name(mbean: &str) -> String {
-    mbean
+    // ObjectName is "domain:prop=v,prop=v"; strip the domain so a leading
+    // "name=" property (e.g. "java.lang:name=G1 Young Generation,...") matches.
+    let props = mbean.split_once(':').map(|(_, p)| p).unwrap_or(mbean);
+    props
         .split(',')
         .find(|s| s.starts_with("name="))
         .map(|s| s.trim_start_matches("name=").to_string())

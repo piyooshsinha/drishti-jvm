@@ -9,6 +9,10 @@ description = "Ratatui terminal UI for drishti-jvm — the main binary"
 name = "drishti-jvm"
 path = "src/main.rs"
 
+[features]
+# Enable SQLite persistence of snapshots via --db <path>
+persistence = ["drishti-core/persistence"]
+
 [dependencies]
 drishti-core = { workspace = true }
 drishti-jolokia = { workspace = true }

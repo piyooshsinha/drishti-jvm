@@ -25,6 +25,8 @@ jobs:
         run: cargo test --workspace --locked
       - name: Test (persistence feature)
         run: cargo test -p drishti-core --features persistence --locked
+      - name: Build TUI with persistence
+        run: cargo build -p drishti-tui --features persistence --locked
 
   lint:
     name: Lint

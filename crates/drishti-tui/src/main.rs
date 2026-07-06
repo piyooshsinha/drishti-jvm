@@ -64,6 +64,11 @@ struct Cli {
     /// With --once: print anomaly alerts and tuning recommendations
     #[arg(long, default_value_t = false)]
     recommendations: bool,
+
+    /// Persist snapshots to a SQLite database at this path
+    /// (requires a build with --features persistence)
+    #[arg(long)]
+    db: Option<std::path::PathBuf>,
 }
 
 #[tokio::main]
@@ -108,6 +113,19 @@ async fn main() -> Result<()> {
         },
         cancel.clone(),
     );
+
+    #[cfg(feature = "persistence")]
+    if let Some(db_path) = &cli.db {
+        collector::spawn_persistence(state.clone(), db_path.clone(), cancel.clone())
+            .map_err(|e| eyre!("failed to open metrics db {}: {e}", db_path.display()))?;
+    }
+    #[cfg(not(feature = "persistence"))]
+    if cli.db.is_some() {
+        return Err(eyre!(
+            "--db requires a build with --features persistence \
+             (cargo build -p drishti-tui --features persistence)"
+        ));
+    }
 
     enable_raw_mode()?;
     execute!(stderr(), EnterAlternateScreen)?;

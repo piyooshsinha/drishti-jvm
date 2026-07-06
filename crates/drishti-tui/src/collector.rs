@@ -17,6 +17,42 @@ use std::time::Duration;
 use tokio::sync::{mpsc, watch};
 use tokio_util::sync::CancellationToken;
 
+/// Connection state of a single data source, updated by its collector task.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SourceState {
+    Disabled,
+    Connecting,
+    Up,
+    Down,
+}
+
+/// Lock-free per-source connection status (written by collector tasks, read by the header).
+#[derive(Default)]
+pub struct SourceStatus {
+    // 0=disabled, 1=connecting, 2=up, 3=down
+    state: std::sync::atomic::AtomicU8,
+}
+
+impl SourceStatus {
+    pub fn enable(&self) {
+        self.state.store(1, std::sync::atomic::Ordering::Relaxed);
+    }
+    pub fn record_ok(&self) {
+        self.state.store(2, std::sync::atomic::Ordering::Relaxed);
+    }
+    pub fn record_err(&self) {
+        self.state.store(3, std::sync::atomic::Ordering::Relaxed);
+    }
+    pub fn get(&self) -> SourceState {
+        match self.state.load(std::sync::atomic::Ordering::Relaxed) {
+            1 => SourceState::Connecting,
+            2 => SourceState::Up,
+            3 => SourceState::Down,
+            _ => SourceState::Disabled,
+        }
+    }
+}
+
 pub struct AppState {
     pub snapshot: Arc<ArcSwap<JvmSnapshot>>,
     pub history: Arc<std::sync::Mutex<Vec<JvmSnapshot>>>,
@@ -24,6 +60,8 @@ pub struct AppState {
     pub gc_events: Arc<std::sync::Mutex<Vec<GcEvent>>>,
     pub watch_rx: watch::Receiver<u64>,
     pub readonly: bool,
+    pub actuator_status: SourceStatus,
+    pub jolokia_status: SourceStatus,
     watch_tx: watch::Sender<u64>,
     tick: std::sync::atomic::AtomicU64,
     prev_snapshot: Arc<std::sync::Mutex<Option<JvmSnapshot>>>,
@@ -39,6 +77,8 @@ impl AppState {
             gc_events: Arc::new(std::sync::Mutex::new(Vec::with_capacity(500))),
             watch_rx,
             readonly,
+            actuator_status: SourceStatus::default(),
+            jolokia_status: SourceStatus::default(),
             watch_tx,
             tick: std::sync::atomic::AtomicU64::new(0),
             prev_snapshot: Arc::new(std::sync::Mutex::new(None)),
@@ -168,7 +208,14 @@ pub fn spawn_collectors(
     let (log_tx, log_rx) = mpsc::channel::<String>(500);
     let (mbeans_tx, mbeans_rx) = mpsc::channel::<Vec<String>>(1);
 
-    // Task 1: Actuator prometheus scrape (2s)
+    if actuator_url.is_some() {
+        state.actuator_status.enable();
+    }
+    if jolokia_url.is_some() {
+        state.jolokia_status.enable();
+    }
+
+    // Task 1: Actuator prometheus scrape
     if let Some(url) = actuator_url.clone() {
         let state = state.clone();
         let cancel = cancel.clone();
@@ -179,8 +226,15 @@ pub fn spawn_collectors(
                 tokio::select! {
                     _ = cancel.cancelled() => break,
                     _ = interval.tick() => {
-                        if let Ok(text) = client.scrape_prometheus_raw().await {
-                            state.update_snapshot(prometheus_to_snapshot(&text));
+                        match client.scrape_prometheus_raw().await {
+                            Ok(text) => {
+                                state.actuator_status.record_ok();
+                                state.update_snapshot(prometheus_to_snapshot(&text));
+                            }
+                            Err(e) => {
+                                state.actuator_status.record_err();
+                                tracing::debug!("actuator scrape failed: {e}");
+                            }
                         }
                     }
                 }
@@ -188,7 +242,7 @@ pub fn spawn_collectors(
         });
     }
 
-    // Task 2: Jolokia bulk read (3s)
+    // Task 2: Jolokia bulk read
     if let Some(url) = jolokia_url.clone() {
         let state = state.clone();
         let cancel = cancel.clone();
@@ -200,9 +254,16 @@ pub fn spawn_collectors(
                 tokio::select! {
                     _ = cancel.cancelled() => break,
                     _ = interval.tick() => {
-                        if let Ok(responses) = client.bulk_read(&BulkRequestBuilder::standard()).await {
-                            let current = state.current();
-                            state.update_snapshot(merge_snapshots(&current, &bulk_to_snapshot(&responses)));
+                        match client.bulk_read(&BulkRequestBuilder::standard()).await {
+                            Ok(responses) => {
+                                state.jolokia_status.record_ok();
+                                let current = state.current();
+                                state.update_snapshot(merge_snapshots(&current, &bulk_to_snapshot(&responses)));
+                            }
+                            Err(e) => {
+                                state.jolokia_status.record_err();
+                                tracing::debug!("jolokia bulk read failed: {e}");
+                            }
                         }
                     }
                 }
@@ -224,6 +285,11 @@ pub fn spawn_collectors(
                         if let Ok(json) = client.thread_dump_raw().await {
                             if let Ok(threads) = parse_thread_dump(&json) {
                                 let mut snap = (*state.current()).clone();
+                                // Recompute state counts from the actual thread list
+                                snap.thread_summary.state_counts.clear();
+                                for t in &threads {
+                                    *snap.thread_summary.state_counts.entry(t.state.clone()).or_insert(0) += 1;
+                                }
                                 snap.threads = threads;
                                 snap.timestamp = chrono::Utc::now();
                                 state.update_snapshot(snap);
@@ -323,6 +389,43 @@ pub fn spawn_collectors(
     CollectorChannels { log_rx, mbeans_rx }
 }
 
+/// Persist snapshots to SQLite every 10s; prune to 72h retention hourly.
+#[cfg(feature = "persistence")]
+pub fn spawn_persistence(
+    state: Arc<AppState>,
+    db_path: std::path::PathBuf,
+    cancel: CancellationToken,
+) -> Result<(), String> {
+    use drishti_core::persistence::db::MetricsDb;
+    let db = MetricsDb::open(&db_path).map_err(|e| e.to_string())?;
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(Duration::from_secs(10));
+        let mut ticks_since_prune = 0u32;
+        loop {
+            tokio::select! {
+                _ = cancel.cancelled() => break,
+                _ = interval.tick() => {
+                    let snap = state.current();
+                    // Skip the default snapshot before any source has reported
+                    if snap.jvm_info.uptime_ms > 0 || snap.heap.used > 0 {
+                        if let Err(e) = db.insert_snapshot(&snap) {
+                            tracing::warn!("persistence insert failed: {e}");
+                        }
+                    }
+                    ticks_since_prune += 1;
+                    if ticks_since_prune >= 360 {
+                        if let Err(e) = db.prune(72) {
+                            tracing::warn!("persistence prune failed: {e}");
+                        }
+                        ticks_since_prune = 0;
+                    }
+                }
+            }
+        }
+    });
+    Ok(())
+}
+
 pub fn merge_snapshots(actuator: &JvmSnapshot, jolokia: &JvmSnapshot) -> JvmSnapshot {
     let mut m = actuator.clone();
     if !jolokia.deadlocks.is_empty() {
@@ -345,6 +448,15 @@ pub fn merge_snapshots(actuator: &JvmSnapshot, jolokia: &JvmSnapshot) -> JvmSnap
     }
     if jolokia.memory_pools.len() > m.memory_pools.len() {
         m.memory_pools = jolokia.memory_pools.clone();
+    }
+    if jolokia.gc_collectors.len() > m.gc_collectors.len() {
+        m.gc_collectors = jolokia.gc_collectors.clone();
+    }
+    if m.cpu.process_cpu == 0.0 && jolokia.cpu.process_cpu > 0.0 {
+        m.cpu = jolokia.cpu.clone();
+    }
+    if m.classes.loaded == 0 && jolokia.classes.loaded > 0 {
+        m.classes = jolokia.classes.clone();
     }
     m.timestamp = chrono::Utc::now();
     m

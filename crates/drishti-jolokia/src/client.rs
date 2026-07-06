@@ -77,8 +77,11 @@ impl JolokiaClient {
         &self,
         requests: &[JolokiaRequest],
     ) -> Result<Vec<JolokiaResponse>, JolokiaError> {
+        // The Jolokia JVM agent 404s POSTs to the bare context path;
+        // it requires the trailing slash (e.g. /jolokia/).
+        let url = format!("{}/", self.base_url);
         let resp = self
-            .apply_auth(self.http.post(&self.base_url))
+            .apply_auth(self.http.post(&url))
             .header("Content-Type", "application/json")
             .json(requests)
             .send()
