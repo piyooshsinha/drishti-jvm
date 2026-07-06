@@ -30,7 +30,7 @@ jobs:
           targets: ${{ matrix.target }}
       - uses: Swatinem/rust-cache@v2
       - name: Build release binary
-        run: cargo build --release -p drishti-tui --target ${{ matrix.target }} --locked
+        run: cargo build --release -p drishti-jvm --target ${{ matrix.target }} --locked
       - name: Package
         run: |
           cd target/${{ matrix.target }}/release

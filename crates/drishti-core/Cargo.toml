@@ -3,6 +3,9 @@ name = "drishti-core"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+repository.workspace = true
+keywords = ["jvm", "monitoring", "gc", "tuning", "anomaly"]
+categories = ["development-tools::profiling"]
 description = "Core data model, time-series storage, anomaly detection, and JVM tuning recommendations for drishti-jvm"
 
 [dependencies]

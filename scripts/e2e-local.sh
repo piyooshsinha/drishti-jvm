@@ -20,7 +20,7 @@ cleanup() {
 trap cleanup EXIT
 
 echo "==> Building drishti-jvm"
-cargo build -p drishti-tui
+cargo build -p drishti-jvm
 
 echo "==> Fetching Jolokia agent $JOLOKIA_VERSION"
 [ -f "$WORK/jolokia-agent.jar" ] || curl -sL -o "$WORK/jolokia-agent.jar" \

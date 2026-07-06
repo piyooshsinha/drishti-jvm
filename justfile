@@ -88,7 +88,7 @@ lint:
 
 # Run the TUI
 run *ARGS:
-    cargo run -p drishti-tui -- {{ARGS}}
+    cargo run -p drishti-jvm -- {{ARGS}}
 
 # Watch mode development
 dev:

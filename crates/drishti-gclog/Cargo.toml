@@ -3,6 +3,9 @@ name = "drishti-gclog"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+repository.workspace = true
+keywords = ["gc", "jvm", "g1", "zgc", "shenandoah"]
+categories = ["parser-implementations"]
 description = "GC log parser for drishti-jvm — G1, ZGC, and Shenandoah unified log parsing"
 
 [dependencies]

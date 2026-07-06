@@ -8,6 +8,12 @@
 
 ![Overview tab — heap/CPU gauges, GC throughput, HTTP rate, connection pool, and live anomaly alerts](docs/ui-overview.svg)
 
+## Install
+
+Prebuilt binaries for Linux (x86_64) and macOS (x86_64/arm64) are attached to
+[GitHub releases](https://github.com/piyooshsinha/drishti-jvm/releases).
+Or build from source: `cargo install --git https://github.com/piyooshsinha/drishti-jvm drishti-jvm`
+
 ## Quick Start
 
 ```bash
@@ -22,7 +28,7 @@ cd .. && ./scripts/verify-sources.sh
 
 # 4. Build and run
 cargo build --workspace
-cargo run -p drishti-tui -- \
+cargo run -p drishti-jvm -- \
   --actuator http://localhost:8080/actuator \
   --jolokia http://localhost:8778/jolokia
 ```

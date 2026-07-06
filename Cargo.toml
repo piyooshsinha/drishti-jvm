@@ -9,11 +9,11 @@ members = [
 ]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.3.0"
 edition = "2021"
 license = "MIT"
 authors = ["Piyoosh"]
-repository = "https://github.com/piyoosh/drishti-jvm"
+repository = "https://github.com/piyooshsinha/drishti-jvm"
 description = "A Rust + Ratatui TUI for JVM/Spring Boot monitoring, anomaly detection, and tuning recommendations"
 
 [workspace.dependencies]
@@ -66,10 +66,10 @@ clap = { version = "4", features = ["derive"] }
 rusqlite = { version = "0.32", features = ["bundled"] }
 
 # ── Workspace crates (inter-crate deps) ───────────────────
-drishti-core = { path = "crates/drishti-core" }
-drishti-jolokia = { path = "crates/drishti-jolokia" }
-drishti-actuator = { path = "crates/drishti-actuator" }
-drishti-gclog = { path = "crates/drishti-gclog" }
+drishti-core = { path = "crates/drishti-core", version = "0.3.0" }
+drishti-jolokia = { path = "crates/drishti-jolokia", version = "0.3.0" }
+drishti-actuator = { path = "crates/drishti-actuator", version = "0.3.0" }
+drishti-gclog = { path = "crates/drishti-gclog", version = "0.3.0" }
 
 # ── Release profile: small, fast, stripped binary ──────────
 [profile.release]

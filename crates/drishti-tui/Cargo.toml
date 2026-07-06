@@ -1,9 +1,12 @@
 [package]
-name = "drishti-tui"
+name = "drishti-jvm"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Ratatui terminal UI for drishti-jvm — the main binary"
+repository.workspace = true
+keywords = ["jvm", "tui", "spring-boot", "monitoring", "ratatui"]
+categories = ["command-line-utilities", "development-tools::profiling"]
+description = "दृष्टि — a Ratatui TUI for JVM/Spring Boot monitoring, anomaly detection, and tuning recommendations"
 
 [[bin]]
 name = "drishti-jvm"

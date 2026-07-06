@@ -3,6 +3,9 @@ name = "drishti-actuator"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+repository.workspace = true
+keywords = ["spring-boot", "actuator", "prometheus", "jvm", "monitoring"]
+categories = ["api-bindings"]
 description = "Spring Boot Actuator client for drishti-jvm — metrics, prometheus scraping, health, thread dumps"
 
 [dependencies]

@@ -3,6 +3,9 @@ name = "drishti-jolokia"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+repository.workspace = true
+keywords = ["jolokia", "jmx", "jvm", "mbean", "monitoring"]
+categories = ["api-bindings"]
 description = "Jolokia HTTP/JSON client for drishti-jvm — bulk MBean reads, deadlock detection, MBean browsing"
 
 [dependencies]
