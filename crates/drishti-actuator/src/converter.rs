@@ -212,7 +212,90 @@ pub fn prometheus_to_snapshot(text: &str) -> JvmSnapshot {
             threads_max: reg
                 .find_gauge_value(&samples, CanonicalMetric::TomcatThreadsMax, &[])
                 .unwrap_or(0.0) as i32,
+            connections_current: reg
+                .find_gauge_value(&samples, CanonicalMetric::TomcatConnectionsCurrent, &[])
+                .unwrap_or(0.0) as i64,
+            connections_max: reg
+                .find_gauge_value(&samples, CanonicalMetric::TomcatConnectionsMax, &[])
+                .unwrap_or(0.0) as i64,
         });
+    }
+
+    // ── Task executors (grouped by {name} label) ──
+    let executor_names: std::collections::BTreeSet<String> = samples
+        .iter()
+        .filter(|s| reg.resolve_prometheus(&s.name) == Some(CanonicalMetric::ExecutorPoolSize))
+        .filter_map(|s| s.labels.get("name").cloned())
+        .collect();
+    for name in executor_names {
+        let l: Vec<(&str, &str)> = vec![("name", name.as_str())];
+        let get = |m: CanonicalMetric| reg.find_gauge_value(&samples, m, &l);
+        snap.executors.push(ExecutorMetrics {
+            pool_size: get(CanonicalMetric::ExecutorPoolSize).unwrap_or(0.0) as i64,
+            core_size: get(CanonicalMetric::ExecutorPoolCore).unwrap_or(0.0) as i64,
+            max_size: get(CanonicalMetric::ExecutorPoolMax).unwrap_or(0.0) as i64,
+            active: get(CanonicalMetric::ExecutorActive).unwrap_or(0.0) as i64,
+            queued: get(CanonicalMetric::ExecutorQueued).unwrap_or(0.0) as i64,
+            queue_remaining: get(CanonicalMetric::ExecutorQueueRemaining).map(|v| v as i64),
+            completed_total: get(CanonicalMetric::ExecutorCompleted).unwrap_or(0.0) as i64,
+            name,
+        });
+    }
+
+    // ── Caches (grouped by {cache} label, hit/miss split on {result}) ──
+    let cache_names: std::collections::BTreeSet<String> = samples
+        .iter()
+        .filter(|s| reg.resolve_prometheus(&s.name) == Some(CanonicalMetric::CacheGets))
+        .filter_map(|s| {
+            s.labels
+                .get("cache")
+                .or_else(|| s.labels.get("name"))
+                .cloned()
+        })
+        .collect();
+    for name in cache_names {
+        let l: Vec<(&str, &str)> = vec![("cache", name.as_str())];
+        let hits = reg
+            .find_gauge_value(
+                &samples,
+                CanonicalMetric::CacheGets,
+                &[("cache", name.as_str()), ("result", "hit")],
+            )
+            .unwrap_or(0.0) as i64;
+        let misses = reg
+            .find_gauge_value(
+                &samples,
+                CanonicalMetric::CacheGets,
+                &[("cache", name.as_str()), ("result", "miss")],
+            )
+            .unwrap_or(0.0) as i64;
+        snap.caches.push(CacheMetrics {
+            hits,
+            misses,
+            size: reg
+                .find_gauge_value(&samples, CanonicalMetric::CacheSize, &l)
+                .unwrap_or(0.0) as i64,
+            evictions: reg
+                .find_gauge_value(&samples, CanonicalMetric::CacheEvictions, &l)
+                .unwrap_or(0.0) as i64,
+            name,
+        });
+    }
+
+    // ── Log events by level ──
+    for s in samples
+        .iter()
+        .filter(|s| reg.resolve_prometheus(&s.name) == Some(CanonicalMetric::LogbackEvents))
+    {
+        let v = s.value as i64;
+        match s.labels.get("level").map(|l| l.as_str()) {
+            Some("error") => snap.log_events.error = v,
+            Some("warn") => snap.log_events.warn = v,
+            Some("info") => snap.log_events.info = v,
+            Some("debug") => snap.log_events.debug = v,
+            Some("trace") => snap.log_events.trace = v,
+            _ => {}
+        }
     }
 
     // ── HTTP endpoints ──
@@ -308,6 +391,53 @@ mod tests {
         let text = "jvm_threads_live_threads 48.0\njvm_threads_daemon_threads 32.0\njvm_threads_peak_threads 52.0\n";
         let snap = prometheus_to_snapshot(text);
         assert_eq!(snap.thread_summary.live, 48);
+    }
+
+    #[test]
+    fn executors_caches_and_logs_parse() {
+        let text = r#"executor_pool_size_threads{name="applicationTaskExecutor",} 8.0
+executor_pool_core_threads{name="applicationTaskExecutor",} 8.0
+executor_pool_max_threads{name="applicationTaskExecutor",} 16.0
+executor_active_threads{name="applicationTaskExecutor",} 8.0
+executor_queued_tasks{name="applicationTaskExecutor",} 42.0
+executor_queue_remaining_tasks{name="applicationTaskExecutor",} 58.0
+executor_completed_tasks_total{name="applicationTaskExecutor",} 12345.0
+cache_gets_total{cache="books",result="hit",} 300.0
+cache_gets_total{cache="books",result="miss",} 900.0
+cache_size{cache="books",} 500.0
+cache_evictions_total{cache="books",} 50.0
+logback_events_total{level="error",} 3.0
+logback_events_total{level="debug",} 50000.0
+"#;
+        let snap = prometheus_to_snapshot(text);
+
+        assert_eq!(snap.executors.len(), 1);
+        let e = &snap.executors[0];
+        assert_eq!(e.name, "applicationTaskExecutor");
+        assert_eq!(e.pool_size, 8);
+        assert_eq!(e.max_size, 16);
+        assert_eq!(e.queued, 42);
+        assert_eq!(e.queue_remaining, Some(58));
+        assert!(e.is_saturated());
+
+        assert_eq!(snap.caches.len(), 1);
+        let c = &snap.caches[0];
+        assert_eq!(c.name, "books");
+        assert_eq!(c.hits, 300);
+        assert_eq!(c.misses, 900);
+        assert!(c.hit_ratio().unwrap() < 0.3);
+
+        assert_eq!(snap.log_events.error, 3);
+        assert_eq!(snap.log_events.debug, 50000);
+    }
+
+    #[test]
+    fn tomcat_connections_parse() {
+        let text = "tomcat_threads_busy_threads 5.0\ntomcat_connections_current_connections 100.0\ntomcat_connections_config_max_connections 8192.0\n";
+        let snap = prometheus_to_snapshot(text);
+        let t = snap.tomcat.unwrap();
+        assert_eq!(t.connections_current, 100);
+        assert_eq!(t.connections_max, 8192);
     }
 
     #[test]

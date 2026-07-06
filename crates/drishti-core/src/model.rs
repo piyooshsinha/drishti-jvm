@@ -293,6 +293,79 @@ pub struct TomcatMetrics {
     pub threads_busy: i32,
     pub threads_current: i32,
     pub threads_max: i32,
+    /// Current open connections (0 if the metric isn't exposed).
+    #[serde(default)]
+    pub connections_current: i64,
+    /// Configured max connections (0 if the metric isn't exposed).
+    #[serde(default)]
+    pub connections_max: i64,
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 8b. Application-level pools & caches (Micrometer auto-bindings)
+// ═══════════════════════════════════════════════════════════════
+
+/// A Spring task executor / thread pool (from `executor_*` metrics).
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ExecutorMetrics {
+    pub name: String,
+    pub pool_size: i64,
+    pub core_size: i64,
+    pub max_size: i64,
+    pub active: i64,
+    pub queued: i64,
+    /// Remaining queue capacity; None when the queue is unbounded.
+    pub queue_remaining: Option<i64>,
+    pub completed_total: i64,
+}
+
+impl ExecutorMetrics {
+    /// Whether every pool thread is busy.
+    pub fn is_saturated(&self) -> bool {
+        self.pool_size > 0 && self.active >= self.pool_size
+    }
+}
+
+/// A Spring cache (from `cache_*` metrics — Caffeine, Redis, etc.).
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct CacheMetrics {
+    pub name: String,
+    pub hits: i64,
+    pub misses: i64,
+    pub size: i64,
+    pub evictions: i64,
+}
+
+impl CacheMetrics {
+    pub fn gets(&self) -> i64 {
+        self.hits + self.misses
+    }
+
+    /// Hit ratio 0.0–1.0; None if the cache hasn't been read yet.
+    pub fn hit_ratio(&self) -> Option<f64> {
+        let total = self.gets();
+        if total == 0 {
+            None
+        } else {
+            Some(self.hits as f64 / total as f64)
+        }
+    }
+}
+
+/// Cumulative log event counts by level (from `logback_events_total`).
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct LogEventCounts {
+    pub error: i64,
+    pub warn: i64,
+    pub info: i64,
+    pub debug: i64,
+    pub trace: i64,
+}
+
+impl LogEventCounts {
+    pub fn total(&self) -> i64 {
+        self.error + self.warn + self.info + self.debug + self.trace
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -437,6 +510,14 @@ pub struct JvmSnapshot {
 
     // ── Tomcat ────────────────────────────────────────────
     pub tomcat: Option<TomcatMetrics>,
+
+    // ── App-level pools, caches, logging ──────────────────
+    #[serde(default)]
+    pub executors: Vec<ExecutorMetrics>,
+    #[serde(default)]
+    pub caches: Vec<CacheMetrics>,
+    #[serde(default)]
+    pub log_events: LogEventCounts,
 
     // ── JVM Info ──────────────────────────────────────────
     pub jvm_info: JvmInfo,

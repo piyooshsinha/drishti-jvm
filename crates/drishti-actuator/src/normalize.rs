@@ -67,6 +67,25 @@ pub enum CanonicalMetric {
     TomcatThreadsBusy,
     TomcatThreadsCurrent,
     TomcatThreadsMax,
+    TomcatConnectionsCurrent,
+    TomcatConnectionsMax,
+
+    // Task executors (Spring auto-instruments every TaskExecutor)
+    ExecutorPoolSize, // needs {name} label
+    ExecutorPoolCore,
+    ExecutorPoolMax,
+    ExecutorActive,
+    ExecutorQueued,
+    ExecutorQueueRemaining,
+    ExecutorCompleted,
+
+    // Caches (Caffeine/Redis/JCache via Micrometer cache binder)
+    CacheGets, // needs {cache, result} labels
+    CacheSize,
+    CacheEvictions,
+
+    // Logging
+    LogbackEvents, // needs {level} label
 }
 
 /// A set of name variants for a single canonical metric.
@@ -284,6 +303,83 @@ impl MetricRegistry {
                     "tomcat_threads_config_max_threads",
                     "tomcat_threads_config_max",
                 ],
+                jolokia_path: None,
+            },
+            MetricMapping {
+                canonical: CanonicalMetric::TomcatConnectionsCurrent,
+                prometheus_names: vec![
+                    "tomcat_connections_current_connections",
+                    "tomcat_connections_current",
+                ],
+                jolokia_path: None,
+            },
+            MetricMapping {
+                canonical: CanonicalMetric::TomcatConnectionsMax,
+                prometheus_names: vec![
+                    "tomcat_connections_config_max_connections",
+                    "tomcat_connections_config_max",
+                ],
+                jolokia_path: None,
+            },
+            // ── Task executors ──────────────────────────────
+            MetricMapping {
+                canonical: CanonicalMetric::ExecutorPoolSize,
+                prometheus_names: vec!["executor_pool_size_threads"],
+                jolokia_path: None,
+            },
+            MetricMapping {
+                canonical: CanonicalMetric::ExecutorPoolCore,
+                prometheus_names: vec!["executor_pool_core_threads"],
+                jolokia_path: None,
+            },
+            MetricMapping {
+                canonical: CanonicalMetric::ExecutorPoolMax,
+                prometheus_names: vec!["executor_pool_max_threads"],
+                jolokia_path: None,
+            },
+            MetricMapping {
+                canonical: CanonicalMetric::ExecutorActive,
+                prometheus_names: vec!["executor_active_threads"],
+                jolokia_path: None,
+            },
+            MetricMapping {
+                canonical: CanonicalMetric::ExecutorQueued,
+                prometheus_names: vec!["executor_queued_tasks"],
+                jolokia_path: None,
+            },
+            MetricMapping {
+                canonical: CanonicalMetric::ExecutorQueueRemaining,
+                prometheus_names: vec!["executor_queue_remaining_tasks"],
+                jolokia_path: None,
+            },
+            MetricMapping {
+                canonical: CanonicalMetric::ExecutorCompleted,
+                prometheus_names: vec![
+                    "executor_completed_tasks_total",
+                    "executor_completed_tasks",
+                ],
+                jolokia_path: None,
+            },
+            // ── Caches ──────────────────────────────────────
+            MetricMapping {
+                canonical: CanonicalMetric::CacheGets,
+                prometheus_names: vec!["cache_gets_total", "cache_gets"],
+                jolokia_path: None,
+            },
+            MetricMapping {
+                canonical: CanonicalMetric::CacheSize,
+                prometheus_names: vec!["cache_size"],
+                jolokia_path: None,
+            },
+            MetricMapping {
+                canonical: CanonicalMetric::CacheEvictions,
+                prometheus_names: vec!["cache_evictions_total", "cache_evictions"],
+                jolokia_path: None,
+            },
+            // ── Logging ─────────────────────────────────────
+            MetricMapping {
+                canonical: CanonicalMetric::LogbackEvents,
+                prometheus_names: vec!["logback_events_total", "logback_events"],
                 jolokia_path: None,
             },
         ];

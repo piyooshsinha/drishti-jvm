@@ -21,6 +21,11 @@ pub enum Category {
     Metaspace,
     ThreadPool,
     HikariCp,
+    Executor,
+    Cache,
+    WebServer,
+    Http,
+    Logging,
     CodeLevel,
 }
 
@@ -42,6 +47,19 @@ pub struct Recommendation {
     pub confidence: f64,
     /// Copy-pasteable JVM flags (e.g., ["-Xmx768m", "-Xms768m"]).
     pub jvm_flags: Vec<String>,
+    /// Copy-pasteable application config lines
+    /// (e.g., ["spring.task.execution.pool.max-size=16"]).
+    #[serde(default)]
+    pub config_changes: Vec<String>,
+}
+
+impl Recommendation {
+    /// All copy-pasteable changes, whatever their flavor.
+    pub fn all_changes(&self) -> Vec<String> {
+        let mut out = self.jvm_flags.clone();
+        out.extend(self.config_changes.clone());
+        out
+    }
 }
 
 /// Trait for individual tuning rules.

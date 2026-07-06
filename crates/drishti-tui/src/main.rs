@@ -240,6 +240,9 @@ async fn run_once(
             if !r.jvm_flags.is_empty() {
                 println!("    flags: {}", r.jvm_flags.join(" "));
             }
+            if !r.config_changes.is_empty() {
+                println!("    config: {}", r.config_changes.join("  "));
+            }
         }
         return Ok(());
     }

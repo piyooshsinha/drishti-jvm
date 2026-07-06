@@ -62,7 +62,7 @@ impl RecommendationsTab {
             .iter()
             .map(|r| {
                 let color = sev_color(r.severity);
-                let flags = r.jvm_flags.join(" ");
+                let flags = r.all_changes().join(" ");
                 Row::new(vec![
                     format!("{:?}", r.category),
                     r.title.clone(),

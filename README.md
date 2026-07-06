@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Rust](https://img.shields.io/badge/rust-2021-orange.svg)
 
-> A Rust + Ratatui TUI that monitors memory, scale, bugs, and performance of Spring Boot / JVM applications — and recommends JVM tuning.
+> A Rust + Ratatui TUI that monitors memory, scale, bugs, and performance of Spring Boot / JVM applications — and recommends tuning across the whole stack: JVM flags *and* application config.
 
 ![Overview tab — heap/CPU gauges, GC throughput, HTTP rate, connection pool, and live anomaly alerts](docs/ui-overview.svg)
 
@@ -33,13 +33,24 @@ cargo run -p drishti-jvm -- \
   --jolokia http://localhost:8778/jolokia
 ```
 
+## What it tunes
+
+Every recommendation is a copy-pasteable change — a JVM flag or an `application.properties` line — with the observed evidence and a confidence score. 12 rules across two layers:
+
+| Layer | Rules |
+|-------|-------|
+| **JVM** | Heap sizing from post-GC occupancy, `-Xms`=`-Xmx`, GC algorithm selection (ZGC for large heaps with long pauses) |
+| **Application** | HikariCP pool sizing (cores×2+1) *and* DB-side-bottleneck detection (waiters with pool headroom), Tomcat worker threads (Little's Law) and connection limits, task-executor backlog & oversizing (`spring.task.execution.pool.*`), cache hit-ratio / thrash analysis (`spring.cache.caffeine.spec`), hot read-only endpoints as cache candidates, DEBUG/TRACE log-volume control |
+
+Plus 5 anomaly detectors: memory-leak regression on old-gen (slope + R²), GC pressure, deadlocks, pool exhaustion, and high-heap thresholds.
+
 ## Screens
 
 10 tabs: Overview, Memory, Threads, HTTP, DB/Pool, Logs, MBeans, Profiler, Console, Recommend.
 
-**Recommend** — anomaly alerts (memory leak regression, GC pressure, deadlocks, pool exhaustion, high heap) paired with copy-pasteable JVM tuning flags:
+**Recommend** — anomaly alerts paired with tuning changes across both layers:
 
-![Recommendations tab — alert table and tuning recommendations with JVM flags](docs/ui-recommendations.svg)
+![Recommendations tab — alert table and tuning recommendations with JVM flags and application config](docs/ui-recommendations.svg)
 
 **Console** — Arthas-style REPL with command history:
 
@@ -81,9 +92,9 @@ Tab/Shift+Tab: cycle tabs | 1-9, 0: jump to tab | j/k: scroll | ?: help | q: qui
 
 ## Workspace — 5 crates, ~7,500 lines
 
-- **drishti-core** — Data model (12 struct families), TimeSeries ring buffer with linear regression, 5 anomaly detectors, 5 tuning rules, SQLite persistence (`--features persistence`), multi-JVM target manager
+- **drishti-core** — Data model (15+ struct families incl. executors, caches, log volume), TimeSeries ring buffer with linear regression, 5 anomaly detectors, 12 tuning rules, SQLite persistence (`--features persistence`), multi-JVM target manager
 - **drishti-jolokia** — Jolokia HTTP client with bulk request builder, response parsing, JvmSnapshot converter
-- **drishti-actuator** — Spring Boot Actuator client with Prometheus parser, metric-name normalization across Boot 2.x/3.x, health (Boot 2+3), thread dumps, remote log tailing via HTTP Range
+- **drishti-actuator** — Spring Boot Actuator client with Prometheus parser, metric-name normalization across Boot 2.x/3.x (JVM, Tomcat, Hikari, executor, cache, logback families), health (Boot 2+3), thread dumps, remote log tailing via HTTP Range
 - **drishti-gclog** — GC log parsers (G1, ZGC classic + generational, Shenandoah), unified log prefix, algorithm auto-detection, async file tailer
 - **drishti-tui** — Ratatui app with 10 tabs (Overview, Memory, Threads, HTTP, DB/Pool, Logs, MBeans, Profiler, Console, Recommendations), async-profiler integration, Arthas-style console REPL
 
